@@ -73,6 +73,7 @@ values to the image; secrets are never Docker build arguments.
 | `CMDOP_ADMIN_PASSWORD` | Initial browser-console password, mounted as a Compose secret | required |
 | `CMDOP_PERMISSIONS_MODE` | `default`, `strict`, or `bypass` | `default` |
 | `CMDOP_MACHINE_NAME` | Stable relay name written during first-time config generation | `cmdop-live-demo` |
+| `HOST_BIND_ADDRESS` | Host interface for the development site and local console | `127.0.0.1` |
 | `DEMO_HOST_PORT` | Host port mapped to Vite | `5173` |
 | `CMDOP_HOST_PORT` | Host port mapped to the console | `63141` |
 | `HOST_UID`, `HOST_GID` | Runtime user identity for Linux bind mounts | `1000` |
@@ -87,7 +88,10 @@ has no admin credential; changing `.env` later does not rotate the password.
 Use `cmdop server admin-password` explicitly for rotation.
 
 The container ports `5173` and `63141` are stable internal contracts. Change
-host ports instead of forking scripts or Compose service definitions.
+host ports instead of forking scripts or Compose service definitions. Both are
+bound to host loopback by default. Set `HOST_BIND_ADDRESS=0.0.0.0` only when
+other LAN machines deliberately need access, and protect the admin console with
+the host firewall and a strong password.
 
 ## Container runtime requirements
 
@@ -97,7 +101,11 @@ libraries. The base already supplies the CA bundle, DNS userspace, Bash,
 coreutils, curl, Git, OpenSSH, and procps; Cmdop carries its own pinned file
 search runtime.
 
-The default demo needs outbound HTTPS plus TCP `4443` in public relay mode. The
+The managed public address accepts browser and agent traffic at
+`https://<subdomain>.cmdop.dev` on standard HTTPS port `443`; that port belongs
+to the Cmdop edge and is not published by this Compose stack. The container
+origin opens an outbound mTLS connection to `proxy.cmdop.dev:4443`, so an
+egress-filtering host must allow TCP `4443` in public relay mode. The
 optional torrent downloader additionally needs outbound TCP and UDP to public
 peers, trackers, and DHT nodes. An egress-filtering host firewall must allow
 that traffic for torrent discovery and transfer to work.
