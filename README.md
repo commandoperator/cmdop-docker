@@ -71,7 +71,7 @@ values to the image; secrets are never Docker build arguments.
 |---|---|---|
 | `CMDOP_API_KEY` | Cmdop inference and public-edge credential | empty |
 | `CMDOP_RELAY_MODE` | `auto`, `lan`, or `public` | `auto` |
-| `CMDOP_PUBLIC_SUBDOMAIN` | Requested `<name>.cmdop.dev` address | empty |
+| `CMDOP_PUBLIC_SUBDOMAIN` | Optional explicit `<name>.cmdop.dev`; empty in explicit `public` mode resolves the organization's provisioned address | empty |
 | `CMDOP_ADMIN_PASSWORD` | Initial browser-console password, mounted as a Compose secret | required |
 | `CMDOP_PERMISSIONS_MODE` | `default`, `strict`, or `bypass` | `default` |
 | `CMDOP_MACHINE_NAME` | Stable relay name written during first-time config generation | `cmdop-live-demo` |
@@ -140,8 +140,9 @@ The boundaries are deliberate:
 - `demo_node_modules` keeps container dependencies out of the host tree.
 
 Cmdop reads the relay config at process start. Change the supported topology
-through `.env`; changing `CMDOP_RELAY_MODE` or `CMDOP_PUBLIC_SUBDOMAIN` causes
-the entrypoint to regenerate `server.yaml` on the next container start.
+through `.env`; changing `CMDOP_RELAY_MODE` or an explicitly configured
+`CMDOP_PUBLIC_SUBDOMAIN` causes the entrypoint to regenerate `server.yaml` on
+the next container start. An empty subdomain preserves a resolved public label.
 Container startup removes only transient PID/status files from the persisted
 home directory, since processes cannot survive recreation of the PID namespace.
 
@@ -202,7 +203,16 @@ host mounts, SSH keys, cloud credentials, or a Docker socket.
 
 ## Public deployment
 
-The same container can become a Cmdop public relay. Set a unique subdomain:
+The same container can become a Cmdop public relay. To reuse the managed address
+already provisioned for the organization behind `CMDOP_API_KEY`, set:
+
+```dotenv
+CMDOP_RELAY_MODE=public
+CMDOP_PUBLIC_SUBDOMAIN=
+```
+
+The installed Go CLI resolves the address from the platform before writing
+`server.yaml`. To request a specific available label instead, set it explicitly:
 
 ```dotenv
 CMDOP_RELAY_MODE=public
@@ -210,7 +220,7 @@ CMDOP_PUBLIC_SUBDOMAIN=my-live-demo
 ```
 
 Then restart Compose. `cmdop server` creates an outbound connection to the Cmdop
-edge and serves its console at:
+edge and serves its console at the resolved or requested address, for example:
 
 ```text
 https://my-live-demo.cmdop.dev
@@ -219,9 +229,12 @@ https://my-live-demo.cmdop.dev
 `auto`, the default, selects public mode whenever `CMDOP_PUBLIC_SUBDOMAIN` is
 non-empty and otherwise stays on LAN. The entrypoint calls the installed CLI's
 own `cmdop server create --no-prompt`; this keeps generated YAML aligned with
-the exact Cmdop version in the image. It preserves an existing config while its
-mode and public subdomain match `.env`, and regenerates it with `--force` when
-either requested value changes.
+the exact Cmdop version in the image. Explicit `public` mode with an empty label
+asks the platform for the organization's existing address. If none has been
+provisioned, startup stops with an actionable error instead of inventing a DNS
+label. It preserves an existing config while its mode and explicit public
+subdomain match `.env`, and regenerates it with `--force` when either requested
+value changes.
 
 The generated public config contains the address and subdomain but no platform
 key. At runtime `cmdop server` resolves `CMDOP_ROUTER_API_KEY` in memory for both

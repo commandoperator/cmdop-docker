@@ -54,6 +54,7 @@ configure_relay() {
   local current_mode=""
   local current_subdomain=""
   local force_args=()
+  local subdomain_args=()
   case "${CMDOP_RELAY_MODE:-auto}" in
     auto)
       if [[ -n "${CMDOP_PUBLIC_SUBDOMAIN:-}" ]]; then
@@ -72,11 +73,8 @@ configure_relay() {
   esac
 
   if [[ "${desired_mode}" == "public" ]]; then
-    if [[ -z "${CMDOP_PUBLIC_SUBDOMAIN:-}" ]]; then
-      log "CMDOP_PUBLIC_SUBDOMAIN is required when CMDOP_RELAY_MODE=public."
-      return 1
-    fi
-    if [[ ! "${CMDOP_PUBLIC_SUBDOMAIN}" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]]; then
+    if [[ -n "${CMDOP_PUBLIC_SUBDOMAIN:-}" \
+      && ! "${CMDOP_PUBLIC_SUBDOMAIN}" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]]; then
       log "CMDOP_PUBLIC_SUBDOMAIN must be a lowercase DNS label."
       return 1
     fi
@@ -93,7 +91,9 @@ configure_relay() {
 
   if [[ ! -f "${SERVER_CONFIG}" \
     || "${current_mode}" != "${desired_mode}" \
-    || ( "${desired_mode}" == "public" && "${current_subdomain}" != "${CMDOP_PUBLIC_SUBDOMAIN}" ) ]]; then
+    || ( "${desired_mode}" == "public" && -z "${current_subdomain}" ) \
+    || ( "${desired_mode}" == "public" && -n "${CMDOP_PUBLIC_SUBDOMAIN:-}" \
+      && "${current_subdomain}" != "${CMDOP_PUBLIC_SUBDOMAIN}" ) ]]; then
     if [[ -f "${SERVER_CONFIG}" ]]; then
       force_args=(--force)
       log "Replacing Cmdop server config: ${current_mode:-unknown} -> ${desired_mode}."
@@ -101,11 +101,16 @@ configure_relay() {
       log "Generating the current Cmdop server config for ${desired_mode} mode."
     fi
     if [[ "${desired_mode}" == "public" ]]; then
+      if [[ -n "${CMDOP_PUBLIC_SUBDOMAIN:-}" ]]; then
+        subdomain_args=(--subdomain "${CMDOP_PUBLIC_SUBDOMAIN}")
+      else
+        log "Resolving the organization's provisioned Cmdop public address."
+      fi
       # The current CLI owns the YAML schema. Keep the platform key out of the
       # file; cmdop server resolves CMDOP_ROUTER_API_KEY in memory at runtime.
       cmdop server create \
         --mode public \
-        --subdomain "${CMDOP_PUBLIC_SUBDOMAIN}" \
+        "${subdomain_args[@]}" \
         --no-prompt \
         "${force_args[@]}" \
         --name "${CMDOP_MACHINE_NAME:-cmdop-live-demo}" >/dev/null
@@ -164,8 +169,10 @@ vite_pid=$!
 
 log "Demo site: http://localhost:${DEMO_PORT:-5173}"
 log "Cmdop console: http://localhost:${CMDOP_HTTP_PORT:-63141}"
-if [[ -n "${CMDOP_PUBLIC_SUBDOMAIN:-}" && "${CMDOP_RELAY_MODE:-auto}" != "lan" ]]; then
-  log "Public Cmdop relay: https://${CMDOP_PUBLIC_SUBDOMAIN}.cmdop.dev"
+configured_mode="$(awk '$1 == "mode:" { print $2; exit }' "${SERVER_CONFIG}" 2>/dev/null || true)"
+configured_subdomain="$(awk '$1 == "subdomain:" { print $2; exit }' "${SERVER_CONFIG}" 2>/dev/null || true)"
+if [[ "${configured_mode}" == "public" && -n "${configured_subdomain}" ]]; then
+  log "Public Cmdop relay: https://${configured_subdomain}.cmdop.dev"
 fi
 
 if wait -n "${server_pid}" "${agent_pid}" "${vite_pid}"; then
