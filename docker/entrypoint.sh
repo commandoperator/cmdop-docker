@@ -6,6 +6,7 @@ readonly SERVER_CONFIG="${CMDOP_CONFIG_DIR}/server.yaml"
 readonly ADMIN_PASSWORD_FILE="${CMDOP_ADMIN_PASSWORD_FILE:-/run/secrets/cmdop_admin_password}"
 
 server_pid=""
+agent_pid=""
 vite_pid=""
 
 log() {
@@ -15,7 +16,7 @@ log() {
 stop_children() {
   trap - TERM INT EXIT
   local pid
-  for pid in "${vite_pid}" "${server_pid}"; do
+  for pid in "${agent_pid}" "${vite_pid}" "${server_pid}"; do
     if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
       kill -TERM "${pid}" 2>/dev/null || true
     fi
@@ -36,8 +37,23 @@ ensure_node_modules() {
   fi
 }
 
+clear_stale_runtime() {
+  # PID namespaces are recreated with the container, while /home/cmdop is a
+  # persistent volume. Never let a recycled PID make Cmdop mistake a status
+  # record from the previous container for a live relay or agent.
+  rm -f \
+    "${HOME}/.cmdop/daemon.status" \
+    "${HOME}/.cmdop/run/agent.pid" \
+    "${HOME}/.cmdop/run/agent.pid.lock" \
+    "${HOME}/.cmdop/run/server.status" \
+    "${HOME}/.cmdop/run/server.status.lock"
+}
+
 configure_relay() {
   local desired_mode
+  local current_mode=""
+  local current_subdomain=""
+  local force_args=()
   case "${CMDOP_RELAY_MODE:-auto}" in
     auto)
       if [[ -n "${CMDOP_PUBLIC_SUBDOMAIN:-}" ]]; then
@@ -70,8 +86,20 @@ configure_relay() {
     fi
   fi
 
-  if [[ ! -f "${SERVER_CONFIG}" ]]; then
-    log "Generating the current Cmdop server config for ${desired_mode} mode."
+  if [[ -f "${SERVER_CONFIG}" ]]; then
+    current_mode="$(awk '$1 == "mode:" { print $2; exit }' "${SERVER_CONFIG}")"
+    current_subdomain="$(awk '$1 == "subdomain:" { print $2; exit }' "${SERVER_CONFIG}")"
+  fi
+
+  if [[ ! -f "${SERVER_CONFIG}" \
+    || "${current_mode}" != "${desired_mode}" \
+    || ( "${desired_mode}" == "public" && "${current_subdomain}" != "${CMDOP_PUBLIC_SUBDOMAIN}" ) ]]; then
+    if [[ -f "${SERVER_CONFIG}" ]]; then
+      force_args=(--force)
+      log "Replacing Cmdop server config: ${current_mode:-unknown} -> ${desired_mode}."
+    else
+      log "Generating the current Cmdop server config for ${desired_mode} mode."
+    fi
     if [[ "${desired_mode}" == "public" ]]; then
       # The current CLI owns the YAML schema. Keep the platform key out of the
       # file; cmdop server resolves CMDOP_ROUTER_API_KEY in memory at runtime.
@@ -79,11 +107,13 @@ configure_relay() {
         --mode public \
         --subdomain "${CMDOP_PUBLIC_SUBDOMAIN}" \
         --no-prompt \
+        "${force_args[@]}" \
         --name "${CMDOP_MACHINE_NAME:-cmdop-live-demo}" >/dev/null
     else
       cmdop server create \
         --mode lan \
         --no-prompt \
+        "${force_args[@]}" \
         --name "${CMDOP_MACHINE_NAME:-cmdop-live-demo}" >/dev/null
     fi
   fi
@@ -108,6 +138,7 @@ configure_permissions() {
 
 cd "${DEMO_DIR}"
 ensure_node_modules
+clear_stale_runtime
 configure_relay
 configure_permissions
 
@@ -123,6 +154,10 @@ cmdop server \
   --no-open &
 server_pid=$!
 
+log "Starting Cmdop agent in ${DEMO_DIR}."
+cmdop agent start --foreground --no-power-blocker &
+agent_pid=$!
+
 log "Starting Vite on port ${DEMO_PORT:-5173}."
 npm run dev -- --host 0.0.0.0 --port "${DEMO_PORT:-5173}" &
 vite_pid=$!
@@ -133,7 +168,7 @@ if [[ -n "${CMDOP_PUBLIC_SUBDOMAIN:-}" && "${CMDOP_RELAY_MODE:-auto}" != "lan" ]
   log "Public Cmdop relay: https://${CMDOP_PUBLIC_SUBDOMAIN}.cmdop.dev"
 fi
 
-if wait -n "${server_pid}" "${vite_pid}"; then
+if wait -n "${server_pid}" "${agent_pid}" "${vite_pid}"; then
   status=0
 else
   status=$?

@@ -1,27 +1,29 @@
 # Cmdop Docker Live Demo
 
+![Cmdop Docker — live agent workspace](assets/hero-cmdop-docker.png)
+
 Run Cmdop beside a writable Vite project and watch the browser update while the
 agent edits the site. The repository is intentionally small: it is a public demo
 for recordings, workshops, and safe experiments inside a container boundary.
 
 ## What starts
 
-One Compose service owns two foreground processes:
+One Compose service owns three foreground processes:
 
 ```text
-Cmdop web console :63141
-        |
-embedded relay + in-process server agent
-        |
-writable /workspace/demo
-        |
-Vite dev server :5173
+Cmdop web console + relay :63141/:63142
+                 |
+Cmdop machine agent (cwd /workspace/demo)
+                 |
+writable bind mount + Vite dev server :5173
 ```
 
-`cmdop server` owns browser sessions, the optional public reverse tunnel, and
-the in-process agent with filesystem and shell tools rooted at
-`/workspace/demo`. Vite owns rendering and hot updates. There is no
-self-enrollment or second agent process.
+`cmdop server` owns browser sessions, the relay, and the optional public reverse
+tunnel. A separate foreground `cmdop agent` connects to that local relay with
+its working directory set to `/workspace/demo`; its filesystem and shell tools
+therefore operate on the bind-mounted site. Vite owns rendering and hot updates.
+All three processes are supervised by the container entrypoint, so an unexpected
+exit restarts the service instead of leaving a misleading half-working demo.
 
 ## Quick start
 
@@ -47,8 +49,8 @@ Open:
 - demo site: <http://localhost:5173>;
 - Cmdop console: <http://localhost:63141>.
 
-Sign in to the console with `CMDOP_ADMIN_PASSWORD`. Select the `server` agent
-and ask it to update the demo.
+Sign in to the console with `CMDOP_ADMIN_PASSWORD`. Select the connected machine
+marked `THIS DEVICE` and ask it to update the demo.
 
 Try:
 
@@ -120,7 +122,7 @@ can then map that same port for both TCP and UDP and the host firewall can allow
 it deliberately.
 
 The stack publishes the browser console on `63141`, but does not publish the
-relay's gRPC listener on `63142`: the in-process `server` agent and the managed
+relay's gRPC listener on `63142`: the container-local agent and the managed
 public tunnel do not need a host mapping. If separate machines must enroll
 directly over the LAN, add `"63142:63142"` to the service ports and protect that
 exposure with the normal Cmdop enrollment and network controls.
@@ -131,14 +133,17 @@ The boundaries are deliberate:
 
 - `./demo` is bind-mounted at `/workspace/demo`; agent edits are host-visible
   immediately and Vite watches the same files;
-- `./config` is bind-mounted at `/home/cmdop/.config/cmdop`; the first start
-  creates `config/server.yaml`, which can be inspected or edited on the host;
+- `./config` is bind-mounted at `/home/cmdop/.config/cmdop`; startup creates
+  `config/server.yaml`, which can be inspected on the host;
 - `cmdop_state` mounts `/home/cmdop`, persisting the relay database, identity,
   logs, and run state while the nested config bind remains host-visible;
 - `demo_node_modules` keeps container dependencies out of the host tree.
 
-Cmdop reads the relay config at process start. After editing
-`config/server.yaml`, restart the service with `docker compose restart demo`.
+Cmdop reads the relay config at process start. Change the supported topology
+through `.env`; changing `CMDOP_RELAY_MODE` or `CMDOP_PUBLIC_SUBDOMAIN` causes
+the entrypoint to regenerate `server.yaml` on the next container start.
+Container startup removes only transient PID/status files from the persisted
+home directory, since processes cannot survive recreation of the PID namespace.
 
 Restart without losing state:
 
@@ -212,12 +217,11 @@ https://my-live-demo.cmdop.dev
 ```
 
 `auto`, the default, selects public mode whenever `CMDOP_PUBLIC_SUBDOMAIN` is
-non-empty and otherwise stays on LAN. When the mounted config directory has no
-`server.yaml`, the entrypoint calls the installed CLI's own
-`cmdop server create --no-prompt`; this keeps generated YAML aligned with the
-exact Cmdop version in the image. Existing config is never overwritten and
-remains the single source of truth. To change topology, reset the generated
-config or edit it deliberately.
+non-empty and otherwise stays on LAN. The entrypoint calls the installed CLI's
+own `cmdop server create --no-prompt`; this keeps generated YAML aligned with
+the exact Cmdop version in the image. It preserves an existing config while its
+mode and public subdomain match `.env`, and regenerates it with `--force` when
+either requested value changes.
 
 The generated public config contains the address and subdomain but no platform
 key. At runtime `cmdop server` resolves `CMDOP_ROUTER_API_KEY` in memory for both
