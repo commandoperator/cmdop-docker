@@ -97,12 +97,25 @@ libraries. The base already supplies the CA bundle, DNS userspace, Bash,
 coreutils, curl, Git, OpenSSH, and procps; Cmdop carries its own pinned file
 search runtime.
 
-The default demo needs outbound HTTPS plus TCP `4443` in public relay mode. It
-publishes the browser console on `63141`, but does not publish the relay's gRPC
-listener on `63142`: the in-process `server` agent and the managed public tunnel
-do not need a host mapping. If separate machines must enroll directly over the
-LAN, add `"63142:63142"` to the service ports and protect that exposure with the
-normal Cmdop enrollment and network controls.
+The default demo needs outbound HTTPS plus TCP `4443` in public relay mode. The
+optional torrent downloader additionally needs outbound TCP and UDP to public
+peers, trackers, and DHT nodes. An egress-filtering host firewall must allow
+that traffic for torrent discovery and transfer to work.
+
+No inbound torrent port is published. Cmdop currently runs its embedded
+`anacrolix/torrent` client in download-only mode with uploading, seeding, UPnP,
+and default port forwarding disabled; it asks the OS for an ephemeral listen
+port. Publishing a conventional fixed port such as `42069` would therefore be
+misleading and ineffective. If Cmdop later supports inbound peers or seeding,
+the application must first expose a stable configurable listen port; Compose
+can then map that same port for both TCP and UDP and the host firewall can allow
+it deliberately.
+
+The stack publishes the browser console on `63141`, but does not publish the
+relay's gRPC listener on `63142`: the in-process `server` agent and the managed
+public tunnel do not need a host mapping. If separate machines must enroll
+directly over the LAN, add `"63142:63142"` to the service ports and protect that
+exposure with the normal Cmdop enrollment and network controls.
 
 ## Persistence and reset
 
@@ -151,6 +164,16 @@ docker compose up -d
 
 Use an image digest in a deployment system when exact build reproducibility is
 required.
+
+## Secret protection
+
+The local `.env` file is ignored by Git. Enable the tracked pre-commit guard in
+each clone so staged environment files, private keys, and probable API tokens
+are rejected:
+
+```bash
+git config core.hooksPath .githooks
+```
 
 ## Recording mode
 

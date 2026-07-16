@@ -42,6 +42,9 @@ RUN npm ci --ignore-scripts \
 COPY --chown=cmdop:cmdop demo/ ./
 COPY --chown=root:root --chmod=0755 docker/entrypoint.sh docker/healthcheck.sh /usr/local/bin/
 
+# Cmdop's current torrent client is download-only, uses an ephemeral listen
+# port, and disables automatic port forwarding. It needs outbound TCP/UDP but
+# intentionally has no stable inbound torrent port to expose here.
 EXPOSE 5173 63141
 
 HEALTHCHECK --interval=10s --timeout=4s --start-period=45s --retries=6 \
