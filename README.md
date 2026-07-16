@@ -31,6 +31,7 @@ is optional.
 
 ## Read more
 
+- [Documentation index and safe support bundle](docs/README.md)
 - [How the demo works](docs/architecture.md)
 - [Configuration and persistence](docs/configuration.md)
 - [Agent commits and optional GitHub publishing](docs/git-and-github.md)

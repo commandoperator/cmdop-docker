@@ -26,7 +26,17 @@ uses secrets as Docker build arguments.
 Compose mounts the admin password as `/run/secrets/cmdop_admin_password`; it is
 not placed in the container environment. Cmdop reads it only when its durable
 store has no admin credential. Changing `.env` later does not rotate an
-existing password; use `cmdop server admin-password` for that.
+existing password. Rotate it explicitly, then restart the service:
+
+```bash
+docker compose exec demo cmdop server admin-password --reset
+docker compose restart demo
+```
+
+The password command stores a hash and invalidates existing browser sessions.
+`--reset` generates a value that is displayed once. `--set <value>` is also
+available, but putting a real password directly on a command line may retain it
+in shell history or a process listing.
 
 ## Storage boundaries
 
@@ -57,6 +67,10 @@ docker compose down --volumes
 rm -f config/server.yaml
 docker compose up --build
 ```
+
+This is destructive for Cmdop identity, chat history, and the isolated demo Git
+history. Copy anything you need from the volumes before running it. A normal
+`docker compose restart demo` preserves all of that state.
 
 ## Permissions and secret protection
 

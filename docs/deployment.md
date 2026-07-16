@@ -27,6 +27,12 @@ organization's existing address. If none exists, startup stops with an
 actionable error. The generated YAML contains the address but not the platform
 key; `cmdop server` reads `CMDOP_ROUTER_API_KEY` from process memory.
 
+The current managed plan has one free `*.cmdop.dev` address per organization.
+Several machines may connect through that relay, but a second independently
+named relay address is a separate product entitlement. An empty
+`CMDOP_PUBLIC_SUBDOMAIN` reuses the organization's authoritative address; it
+does not invent a new hostname for every container recreation.
+
 ## Ports and firewall
 
 - `8080 -> 5173/TCP`: local Vite site.
@@ -40,6 +46,11 @@ Both host mappings bind to loopback by default. Set
 `HOST_BIND_ADDRESS=0.0.0.0` only for deliberate LAN access, and then protect the
 console with the host firewall and a strong password. Publish `63142` only when
 separate LAN machines must enroll directly.
+
+An address such as `172.19.0.2` in logs or the console is the container's
+private Compose bridge address. On Colima that bridge lives inside its Linux VM.
+It is normal, is not the managed public URL, and should not be opened in a
+browser from another machine.
 
 The optional torrent downloader needs outbound TCP and UDP to peers, trackers,
 and DHT nodes. No inbound torrent port is published: Cmdop currently uses a
