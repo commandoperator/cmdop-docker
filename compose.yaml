@@ -23,10 +23,11 @@ services:
       VITE_USE_POLLING: ${VITE_USE_POLLING:-true}
       VITE_POLL_INTERVAL_MS: ${VITE_POLL_INTERVAL_MS:-300}
       VITE_HMR_CLIENT_PORT: ${VITE_HMR_CLIENT_PORT:-}
+      VITE_CMDOP_CONSOLE_PORT: ${CMDOP_HOST_PORT:-63141}
     secrets:
       - cmdop_admin_password
     ports:
-      - "${HOST_BIND_ADDRESS:-127.0.0.1}:${DEMO_HOST_PORT:-5173}:5173"
+      - "${HOST_BIND_ADDRESS:-127.0.0.1}:${DEMO_HOST_PORT:-8080}:5173"
       - "${HOST_BIND_ADDRESS:-127.0.0.1}:${CMDOP_HOST_PORT:-63141}:63141"
     volumes:
       - cmdop_state:/home/cmdop

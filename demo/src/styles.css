@@ -61,6 +61,38 @@ a:focus-visible {
   text-decoration: none;
 }
 
+.nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.console-action {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+.console-action:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface));
+}
+
+.console-action:active {
+  transform: translateY(1px);
+}
+
 .live-status {
   display: flex;
   align-items: center;
@@ -303,8 +335,21 @@ a:focus-visible {
     min-height: 82px;
   }
 
+  .nav__actions {
+    gap: 10px;
+  }
+
   .live-status small {
     display: none;
+  }
+
+  .live-status strong {
+    display: none;
+  }
+
+  .console-action {
+    min-height: 38px;
+    padding-inline: 12px;
   }
 
   .hero {

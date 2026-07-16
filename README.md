@@ -46,7 +46,7 @@ docker compose up --build
 
 Open:
 
-- demo site: <http://localhost:5173>;
+- demo site: <http://localhost:8080>;
 - Cmdop console: <http://localhost:63141>.
 
 Sign in to the console with `CMDOP_ADMIN_PASSWORD`. Select the connected machine
@@ -76,7 +76,7 @@ values to the image; secrets are never Docker build arguments.
 | `CMDOP_PERMISSIONS_MODE` | `default`, `strict`, or `bypass` | `default` |
 | `CMDOP_MACHINE_NAME` | Stable relay name written during first-time config generation | `cmdop-live-demo` |
 | `HOST_BIND_ADDRESS` | Host interface for the development site and local console | `127.0.0.1` |
-| `DEMO_HOST_PORT` | Host port mapped to Vite | `5173` |
+| `DEMO_HOST_PORT` | Host port mapped to Vite | `8080` |
 | `CMDOP_HOST_PORT` | Host port mapped to the console | `63141` |
 | `HOST_UID`, `HOST_GID` | Runtime user identity for Linux bind mounts | `1000` |
 | `VITE_USE_POLLING` | Reliable bind-mount file watching | `true` |
@@ -89,7 +89,9 @@ sources the value from `.env` and mounts it at
 has no admin credential; changing `.env` later does not rotate the password.
 Use `cmdop server admin-password` explicitly for rotation.
 
-The container ports `5173` and `63141` are stable internal contracts. Change
+The container ports `5173` and `63141` are stable internal contracts. The
+default host mapping is `8080 → 5173` for the site and `63141 → 63141` for the
+console. Change
 host ports instead of forking scripts or Compose service definitions. Both are
 bound to host loopback by default. Set `HOST_BIND_ADDRESS=0.0.0.0` only when
 other LAN machines deliberately need access, and protect the admin console with
@@ -266,7 +268,7 @@ docker compose logs -f demo
 Check both health surfaces:
 
 ```bash
-curl -fsS http://localhost:5173/
+curl -fsS http://localhost:8080/
 curl -fsS http://localhost:63141/health
 ```
 

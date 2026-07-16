@@ -2,6 +2,11 @@ import { useState } from 'react'
 import { siteContent } from './content'
 import { useLiveRevision } from './useLiveRevision'
 
+function cmdopConsoleURL() {
+  const port = import.meta.env.VITE_CMDOP_CONSOLE_PORT || '63141'
+  return `${window.location.protocol}//${window.location.hostname}:${port}`
+}
+
 function LiveStatus() {
   const { status, lastChange } = useLiveRevision()
   const label = status === 'live' ? 'Live updates connected' : 'Reconnecting updates'
@@ -48,7 +53,12 @@ export default function App() {
         <a className="brand" href="#top" aria-label="Cmdop Live Canvas home">
           {siteContent.brand}
         </a>
-        <LiveStatus />
+        <div className="nav__actions">
+          <LiveStatus />
+          <a className="console-action" href={cmdopConsoleURL()} target="_blank" rel="noreferrer">
+            Open Cmdop Console
+          </a>
+        </div>
       </header>
 
       <section className="hero shell" id="top">
