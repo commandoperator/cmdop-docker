@@ -6,7 +6,7 @@ ARG CMDOP_INSTALL_URL=https://install.cmdop.com
 
 ENV DEBIAN_FRONTEND=noninteractive \
     HOME=/home/cmdop \
-    PATH=/home/cmdop/.local/bin:${PATH} \
+    PATH=/opt/cmdop/bin:${PATH} \
     CMDOP_CONFIG_DIR=/home/cmdop/.config/cmdop \
     CMDOP_ASCII=1 \
     NO_COLOR=1 \
@@ -16,8 +16,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN groupmod --new-name cmdop --gid "${HOST_GID}" node \
     && usermod --login cmdop --uid "${HOST_UID}" --gid "${HOST_GID}" \
         --home /home/cmdop --move-home node \
-    && mkdir -p /workspace/demo "${CMDOP_CONFIG_DIR}" /home/cmdop/.local/bin \
-    && chown -R cmdop:cmdop /workspace /home/cmdop
+    && mkdir -p /workspace/demo /workspace/.git "${CMDOP_CONFIG_DIR}" /opt/cmdop/bin \
+    && chown -R cmdop:cmdop /workspace /home/cmdop /opt/cmdop \
+    && ln -s /opt/cmdop/bin/cmdop /usr/local/bin/cmdop
 
 WORKDIR /workspace/demo
 
@@ -26,7 +27,7 @@ USER cmdop
 # The official installer owns architecture selection and checksum validation.
 # Running it unprivileged keeps host service files out of the container.
 RUN curl -fsSL "${CMDOP_INSTALL_URL}" \
-    | CMDOP_QUIET=1 bash -s -- --prefix=/home/cmdop/.local/bin
+    | CMDOP_QUIET=1 bash -s -- --prefix=/opt/cmdop/bin
 
 # Fail at build time when the selected distribution predates the container
 # runtime contract this image relies on. This is clearer than boot-looping on an

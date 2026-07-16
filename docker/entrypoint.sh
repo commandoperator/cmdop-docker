@@ -37,6 +37,38 @@ ensure_node_modules() {
   fi
 }
 
+remove_legacy_home_binary() {
+  # Images before v1.1.110 installed cmdop under the persistent HOME volume.
+  # That file can outlive an image rebuild and win in login-shell PATH order.
+  # The image-owned binary now lives under /opt with /usr/local/bin as its
+  # stable command path, so remove only the obsolete executable during upgrade.
+  if [[ -e "${HOME}/.local/bin/cmdop" ]]; then
+    rm -f "${HOME}/.local/bin/cmdop"
+    log "Removed legacy Cmdop binary from the persistent home volume."
+  fi
+}
+
+ensure_git_repository() {
+  if [[ -z "${GIT_DIR:-}" || -z "${GIT_WORK_TREE:-}" ]]; then
+    log "GIT_DIR and GIT_WORK_TREE are required for the isolated demo repository."
+    return 1
+  fi
+
+  if [[ ! -f "${GIT_DIR}/HEAD" ]]; then
+    log "Initializing the isolated demo Git repository."
+    git init --initial-branch=main --quiet
+  fi
+
+  git config --local user.name "${CMDOP_GIT_AUTHOR_NAME:-Cmdop Agent}"
+  git config --local user.email "${CMDOP_GIT_AUTHOR_EMAIL:-agent@cmdop.local}"
+
+  if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
+    git add --all
+    git commit --quiet --message "chore: initialize live workspace"
+    log "Created the initial demo snapshot."
+  fi
+}
+
 clear_stale_runtime() {
   # PID namespaces are recreated with the container, while /home/cmdop is a
   # persistent volume. Never let a recycled PID make Cmdop mistake a status
@@ -142,7 +174,9 @@ configure_permissions() {
 }
 
 cd "${DEMO_DIR}"
+remove_legacy_home_binary
 ensure_node_modules
+ensure_git_repository
 clear_stale_runtime
 configure_relay
 configure_permissions

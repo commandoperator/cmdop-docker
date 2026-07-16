@@ -18,12 +18,17 @@ services:
       CMDOP_ROUTER_API_KEY: ${CMDOP_API_KEY:-}
       CMDOP_PERMISSIONS_MODE: ${CMDOP_PERMISSIONS_MODE:-default}
       CMDOP_MACHINE_NAME: ${CMDOP_MACHINE_NAME:-cmdop-live-demo}
+      CMDOP_AGENT_CWD: ${CMDOP_AGENT_CWD:-/workspace/demo}
       CMDOP_RELAY_MODE: ${CMDOP_RELAY_MODE:-auto}
       CMDOP_PUBLIC_SUBDOMAIN: ${CMDOP_PUBLIC_SUBDOMAIN:-}
       VITE_USE_POLLING: ${VITE_USE_POLLING:-true}
       VITE_POLL_INTERVAL_MS: ${VITE_POLL_INTERVAL_MS:-300}
       VITE_HMR_CLIENT_PORT: ${VITE_HMR_CLIENT_PORT:-}
       VITE_CMDOP_CONSOLE_PORT: ${CMDOP_HOST_PORT:-63141}
+      GIT_DIR: /workspace/.git
+      GIT_WORK_TREE: /workspace/demo
+      CMDOP_GIT_AUTHOR_NAME: ${CMDOP_GIT_AUTHOR_NAME:-Cmdop Agent}
+      CMDOP_GIT_AUTHOR_EMAIL: ${CMDOP_GIT_AUTHOR_EMAIL:-agent@cmdop.local}
     secrets:
       - cmdop_admin_password
     ports:
@@ -33,11 +38,13 @@ services:
       - cmdop_state:/home/cmdop
       - ./config:/home/cmdop/.config/cmdop
       - ./demo:/workspace/demo
+      - demo_git:/workspace/.git
       - demo_node_modules:/workspace/demo/node_modules
     stop_grace_period: 20s
 
 volumes:
   cmdop_state:
+  demo_git:
   demo_node_modules:
 
 secrets:

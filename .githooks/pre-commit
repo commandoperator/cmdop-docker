@@ -16,7 +16,7 @@ added_lines="$(git diff --cached --no-ext-diff --unified=0 \
   | grep '^+' \
   | grep -v '^+++' || true)"
 
-if grep -Eq '([s]k-cmdop-[A-Za-z0-9_-]{16,}|[s]k-[A-Za-z0-9_-]{20,}|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY)' \
+if grep -Eq '([s]k-cmdop-[A-Za-z0-9_-]{16,}|[s]k-[A-Za-z0-9_-]{20,}|cmdop_live_[A-Za-z0-9_-]{20,}|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY)' \
   <<<"${added_lines}"; then
   echo "Commit blocked: a probable API key or private key is staged." >&2
   exit 1
