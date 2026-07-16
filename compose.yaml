@@ -1,0 +1,44 @@
+name: cmdop-live-demo
+
+services:
+  demo:
+    build:
+      context: .
+      # Cmdop is installed from the unpinned official installer. Disable the
+      # layer cache so every build resolves the current release.
+      no_cache: true
+      pull: true
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+    image: cmdop-live-demo:local
+    init: true
+    restart: unless-stopped
+    environment:
+      CMDOP_ROUTER_API_KEY: ${CMDOP_API_KEY:-}
+      CMDOP_PERMISSIONS_MODE: ${CMDOP_PERMISSIONS_MODE:-default}
+      CMDOP_MACHINE_NAME: ${CMDOP_MACHINE_NAME:-cmdop-live-demo}
+      CMDOP_RELAY_MODE: ${CMDOP_RELAY_MODE:-auto}
+      CMDOP_PUBLIC_SUBDOMAIN: ${CMDOP_PUBLIC_SUBDOMAIN:-}
+      VITE_USE_POLLING: ${VITE_USE_POLLING:-true}
+      VITE_POLL_INTERVAL_MS: ${VITE_POLL_INTERVAL_MS:-300}
+      VITE_HMR_CLIENT_PORT: ${VITE_HMR_CLIENT_PORT:-}
+    secrets:
+      - cmdop_admin_password
+    ports:
+      - "${DEMO_HOST_PORT:-5173}:5173"
+      - "${CMDOP_HOST_PORT:-63141}:63141"
+    volumes:
+      - cmdop_state:/home/cmdop
+      - ./config:/home/cmdop/.config/cmdop
+      - ./demo:/workspace/demo
+      - demo_node_modules:/workspace/demo/node_modules
+    stop_grace_period: 20s
+
+volumes:
+  cmdop_state:
+  demo_node_modules:
+
+secrets:
+  cmdop_admin_password:
+    environment: CMDOP_ADMIN_PASSWORD

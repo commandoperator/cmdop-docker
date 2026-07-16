@@ -1,0 +1,7 @@
+.env
+config/*
+!config/.gitkeep
+demo/node_modules/
+demo/dist/
+*.log
+.DS_Store
