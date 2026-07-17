@@ -63,7 +63,7 @@ export default function App() {
 
       <section className="hero shell" id="top">
         <div className="hero__copy">
-          <h1>{siteContent.headline}</h1>
+          <h1>{siteContent.headline} {siteContent.headlineCount > 0 && <span className="headline-count">#{siteContent.headlineCount}</span>}</h1>
           <p>{siteContent.intro}</p>
           <a className="primary-action" href="#prompts">
             {siteContent.primaryAction}

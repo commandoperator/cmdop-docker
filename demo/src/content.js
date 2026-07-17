@@ -1,6 +1,7 @@
 export const siteContent = {
   brand: 'CMDOP / LIVE CANVAS',
-  headline: 'Change the site. See it happen.',
+  headline: 'Build the world you want to live in.',
+  headlineCount: 7,
   intro:
     'Ask Cmdop to edit this Vite canvas. Watch every saved change arrive in your browser.',
   primaryAction: 'Try a prompt',

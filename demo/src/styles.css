@@ -406,3 +406,12 @@ a:focus-visible {
     animation-iteration-count: 1 !important;
   }
 }
+
+.headline-count {
+  display: inline-block;
+  font-size: 0.45em;
+  font-weight: 400;
+  opacity: 0.45;
+  vertical-align: middle;
+  letter-spacing: 0.05em;
+}
