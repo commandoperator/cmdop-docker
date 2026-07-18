@@ -70,6 +70,9 @@ ensure_git_repository() {
 }
 
 clear_stale_runtime() {
+  # cmdop agent (v1.1.110) exits with ENOENT when the runtime directory is
+  # absent, and a freshly created home volume ships without it.
+  mkdir -p "${HOME}/.cmdop/run"
   # PID namespaces are recreated with the container, while /home/cmdop is a
   # persistent volume. Never let a recycled PID make Cmdop mistake a status
   # record from the previous container for a live relay or agent.
