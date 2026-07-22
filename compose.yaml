@@ -11,8 +11,12 @@ services:
       args:
         HOST_UID: ${HOST_UID:-1000}
         HOST_GID: ${HOST_GID:-1000}
+        CMDOP_BROWSER: ${CMDOP_BROWSER:-1}
     image: cmdop-live-demo:local
     init: true
+    # Headless Chromium maps renderer memory into /dev/shm; the Docker
+    # default of 64 MB crashes it on heavy pages.
+    shm_size: "1gb"
     restart: unless-stopped
     environment:
       CMDOP_ROUTER_API_KEY: ${CMDOP_API_KEY:-}

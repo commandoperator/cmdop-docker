@@ -3,6 +3,7 @@ FROM node:24-bookworm
 ARG HOST_UID=1000
 ARG HOST_GID=1000
 ARG CMDOP_INSTALL_URL=https://install.cmdop.com
+ARG CMDOP_BROWSER=1
 
 ENV DEBIAN_FRONTEND=noninteractive \
     HOME=/home/cmdop \
@@ -12,6 +13,22 @@ ENV DEBIAN_FRONTEND=noninteractive \
     NO_COLOR=1 \
     DEMO_PORT=5173 \
     CMDOP_HTTP_PORT=63141
+
+# Chromium powers the agent's headless browser tools (CDP). The agent probes
+# for the binary at runtime and silently skips browser tools when it is
+# absent, so CMDOP_BROWSER=0 builds a slimmer image with the same contract.
+# Debian's chromium tracks the security channel; noto-cjk/emoji fonts keep
+# screenshots of non-Latin pages from rendering as tofu.
+RUN if [ "${CMDOP_BROWSER}" = "1" ]; then \
+        apt-get update \
+        && apt-get install -y --no-install-recommends \
+            chromium \
+            chromium-sandbox \
+            fonts-liberation \
+            fonts-noto-cjk \
+            fonts-noto-color-emoji \
+        && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 RUN groupmod --new-name cmdop --gid "${HOST_GID}" node \
     && usermod --login cmdop --uid "${HOST_UID}" --gid "${HOST_GID}" \

@@ -19,6 +19,7 @@ uses secrets as Docker build arguments.
 | `DEMO_HOST_PORT` | Host port mapped to Vite | `8080` |
 | `CMDOP_HOST_PORT` | Host port mapped to the console | `63141` |
 | `HOST_UID`, `HOST_GID` | Runtime identity for Linux bind mounts | `1000` |
+| `CMDOP_BROWSER` | Build-time: install headless Chromium for the agent's browser tools; `0` builds a slimmer image without them | `1` |
 | `VITE_USE_POLLING` | Reliable bind-mount watching | `true` |
 | `VITE_POLL_INTERVAL_MS` | Watch polling interval | `300` |
 | `VITE_HMR_CLIENT_PORT` | Optional public HMR WebSocket port | empty |
