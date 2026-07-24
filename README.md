@@ -89,6 +89,27 @@ To adapt the stack for another project or public deployment, start with
 [configuration and persistence](docs/configuration.md) and
 [deployment and firewall guidance](docs/deployment.md).
 
+## Agent mode
+
+The same image can also join an **existing** CMDOP server as one more machine —
+no embedded server, no demo, no published ports. Set the target server address
+and its fleet enrollment password in `.env`:
+
+```dotenv
+CMDOP_SERVER_URL=https://my-team.cmdop.dev
+CMDOP_ENROLL_PASSWORD=cmdop_enroll_xxxxxxxx
+```
+
+Then start the dedicated service:
+
+```bash
+docker compose --profile agent up --build agent
+```
+
+The container enrolls on startup and appears in that server's fleet; the host
+`./workspace` directory is the agent's working directory. See
+[configuration](docs/configuration.md#agent-mode) for details.
+
 ## Documentation
 
 - [Architecture and process supervision](docs/architecture.md)

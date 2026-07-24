@@ -4,6 +4,7 @@ set -Eeuo pipefail
 readonly DEMO_DIR="/workspace/demo"
 readonly SERVER_CONFIG="${CMDOP_CONFIG_DIR}/server.yaml"
 readonly ADMIN_PASSWORD_FILE="${CMDOP_ADMIN_PASSWORD_FILE:-/run/secrets/cmdop_admin_password}"
+readonly ENROLL_PASSWORD_FILE="${CMDOP_ENROLL_PASSWORD_FILE:-/run/secrets/cmdop_enroll_password}"
 
 server_pid=""
 agent_pid=""
@@ -164,6 +165,47 @@ configure_relay() {
   fi
 }
 
+run_agent_mode() {
+  # Agent mode: this container is ONE MORE MACHINE in an existing fleet — no
+  # embedded server, no demo project, no Vite. The CLI already supports the
+  # whole path; this branch only wires it.
+  if [[ -z "${CMDOP_SERVER_URL:-}" ]]; then
+    log "CMDOP_SERVER_URL is required when CMDOP_CONTAINER_MODE=agent."
+    return 1
+  fi
+
+  local enroll_password="${CMDOP_ENROLL_PASSWORD:-}"
+  if [[ -z "${enroll_password}" && -r "${ENROLL_PASSWORD_FILE}" ]]; then
+    enroll_password="$(<"${ENROLL_PASSWORD_FILE}")"
+  fi
+  if [[ -z "${enroll_password}" ]]; then
+    log "CMDOP_ENROLL_PASSWORD (or a readable ${ENROLL_PASSWORD_FILE}) is required when CMDOP_CONTAINER_MODE=agent."
+    return 1
+  fi
+
+  local workdir="${CMDOP_AGENT_CWD:-/workspace}"
+  mkdir -p "${workdir}"
+  cd "${workdir}"
+
+  local enroll_args=(--server "${CMDOP_SERVER_URL}" --no-agent)
+  if [[ -n "${CMDOP_MACHINE_NAME:-}" ]]; then
+    enroll_args+=(--display-name "${CMDOP_MACHINE_NAME}")
+  fi
+  if [[ "${CMDOP_SERVER_INSECURE:-0}" == "1" ]]; then
+    enroll_args+=(--insecure)
+  fi
+
+  # Re-enrolling on every start is idempotent: the password is a durable
+  # multi-use fleet secret, and a rotated one is picked up automatically.
+  cmdop enroll "${enroll_password}" "${enroll_args[@]}" >/dev/null
+  log "Enrolled against ${CMDOP_SERVER_URL}; starting the machine agent in ${workdir}."
+
+  # exec: the agent becomes the supervised child of the container init, so
+  # signals reach it directly and its exit status is the container's.
+  trap - TERM INT EXIT
+  exec cmdop agent start --foreground --no-power-blocker
+}
+
 configure_permissions() {
   case "${CMDOP_PERMISSIONS_MODE:-default}" in
     default|strict|bypass)
@@ -176,13 +218,27 @@ configure_permissions() {
   esac
 }
 
-cd "${DEMO_DIR}"
+case "${CMDOP_CONTAINER_MODE:-workspace}" in
+  workspace|agent) ;;
+  *)
+    log "CMDOP_CONTAINER_MODE must be workspace or agent."
+    exit 1
+    ;;
+esac
+
 remove_legacy_home_binary
+clear_stale_runtime
+configure_permissions
+
+if [[ "${CMDOP_CONTAINER_MODE:-workspace}" == "agent" ]]; then
+  run_agent_mode # never returns (execs the agent)
+  exit 1
+fi
+
+cd "${DEMO_DIR}"
 ensure_node_modules
 ensure_git_repository
-clear_stale_runtime
 configure_relay
-configure_permissions
 
 if [[ -z "${CMDOP_ROUTER_API_KEY:-}" ]]; then
   log "Warning: CMDOP_ROUTER_API_KEY is empty. The UI starts, but agent inference may be unavailable."

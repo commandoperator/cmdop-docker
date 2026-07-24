@@ -5,3 +5,5 @@ demo/node_modules/
 demo/dist/
 *.log
 .DS_Store
+workspace/*
+!workspace/.gitkeep

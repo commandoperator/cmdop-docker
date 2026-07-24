@@ -23,6 +23,26 @@ uses secrets as Docker build arguments.
 | `VITE_USE_POLLING` | Reliable bind-mount watching | `true` |
 | `VITE_POLL_INTERVAL_MS` | Watch polling interval | `300` |
 | `VITE_HMR_CLIENT_PORT` | Optional public HMR WebSocket port | empty |
+| `CMDOP_SERVER_URL` | Agent mode: address of the existing Cmdop server to join | empty |
+| `CMDOP_ENROLL_PASSWORD` | Agent mode: fleet enrollment password from that server | empty |
+| `CMDOP_SERVER_INSECURE` | Agent mode: `1` skips TLS verification for a self-signed self-hosted server | `0` |
+
+## Agent mode
+
+The same image can run as a plain machine agent enrolled into an existing
+Cmdop server — no embedded server, no demo project, no published ports:
+
+```bash
+docker compose --profile agent up --build agent
+```
+
+Set `CMDOP_SERVER_URL` and `CMDOP_ENROLL_PASSWORD` in `.env` first (the
+enrollment password comes from the target server's `/admin/enrollment` page or
+its startup log). The container re-enrolls on every start — that is idempotent
+and picks up a rotated password. Agent state persists in the dedicated
+`cmdop_agent_state` volume; the host `./workspace` directory is the agent's
+working directory. The default `docker compose up` workspace service is
+unaffected.
 
 Compose mounts the admin password as `/run/secrets/cmdop_admin_password`; it is
 not placed in the container environment. Cmdop reads it only when its durable

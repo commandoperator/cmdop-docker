@@ -46,8 +46,48 @@ services:
       - demo_node_modules:/workspace/demo/node_modules
     stop_grace_period: 20s
 
+  # Agent mode: this container is ONE MORE MACHINE enrolled into an EXISTING
+  # Cmdop server — no embedded server, no demo, no published ports. Start it
+  # explicitly (the default `docker compose up` is untouched):
+  #
+  #   docker compose --profile agent up --build agent
+  #
+  # Requires CMDOP_SERVER_URL + CMDOP_ENROLL_PASSWORD in .env.
+  agent:
+    profiles: ["agent"]
+    # The machine name in the fleet derives from the hostname — a random
+    # container id makes an unrecognizable roster entry.
+    hostname: ${CMDOP_MACHINE_NAME:-cmdop-docker-agent}
+    build:
+      context: .
+      no_cache: true
+      pull: true
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+        CMDOP_BROWSER: ${CMDOP_BROWSER:-1}
+    image: cmdop-live-demo:local
+    init: true
+    # Headless Chromium (agent browser tools) needs more than the 64 MB default.
+    shm_size: "1gb"
+    restart: unless-stopped
+    environment:
+      CMDOP_CONTAINER_MODE: agent
+      CMDOP_SERVER_URL: ${CMDOP_SERVER_URL:-}
+      CMDOP_ENROLL_PASSWORD: ${CMDOP_ENROLL_PASSWORD:-}
+      CMDOP_SERVER_INSECURE: ${CMDOP_SERVER_INSECURE:-0}
+      CMDOP_ROUTER_API_KEY: ${CMDOP_API_KEY:-}
+      CMDOP_PERMISSIONS_MODE: ${CMDOP_PERMISSIONS_MODE:-default}
+      CMDOP_MACHINE_NAME: ${CMDOP_MACHINE_NAME:-cmdop-docker-agent}
+      CMDOP_AGENT_CWD: /workspace
+    volumes:
+      - cmdop_agent_state:/home/cmdop
+      - ./workspace:/workspace
+    stop_grace_period: 20s
+
 volumes:
   cmdop_state:
+  cmdop_agent_state:
   demo_git:
   demo_node_modules:
 
