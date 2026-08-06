@@ -23,6 +23,7 @@ function revisionPlugin() {
 
 const hmrClientPort = Number(process.env.VITE_HMR_CLIENT_PORT || 0)
 
+
 export default defineConfig({
   plugins: [react(), revisionPlugin()],
   server: {
