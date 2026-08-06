@@ -250,3 +250,42 @@ new hostname.
 The managed address exposes the Cmdop console, not the Vite site on `8080`.
 Publishing the site is a separate reverse-proxy or hosting decision described
 in [Deployment](deployment.md#site-exposure-is-separate).
+
+## `Cannot read properties of null (reading 'useState')`
+
+Reads like a React bug in the demo application. It is a stale Vite cache.
+
+Vite pre-bundles dependencies into `node_modules/.vite/deps/` and serves each
+with a `?v=<hash>` query. If that cache desynchronises, `react.js` and
+`react-dom_client.js` arrive under *different* hashes, the page ends up with
+**two React copies**, and React DOM asks a dispatcher that its React never
+filled in. The dispatcher is `null`, so the first hook call throws.
+
+The metadata answers it directly — more than one hash is the bug:
+
+```bash
+docker compose exec demo node -e "
+  const m = require('/workspace/demo/node_modules/.vite/deps/_metadata.json');
+  const h = new Set(Object.values(m.optimized||{}).map(v => v.browserHash||m.browserHash));
+  console.log(h.size, [...h]);"
+```
+
+Fix the instance by removing the cache; Vite rebuilds it coherently on the next
+start:
+
+```bash
+docker compose exec demo rm -rf /workspace/demo/node_modules/.vite
+docker compose restart demo
+```
+
+**Why it desynchronises is worth knowing before you deploy this anywhere.** The
+project's sources and its installed dependencies have to share one lifecycle.
+This Compose file gives `node_modules` a volume of its own because `./demo` is a
+host bind mount that would otherwise shadow the image's copy — correct here, and
+the reason the two can drift: reset the project without the dependency volume
+(or replace the image without either) and a pre-bundle cache outlives the
+sources it was built from.
+
+A server deployment that mounts the project from the image rather than the host
+should **not** copy that volume across. One volume covering both keeps them in
+step and makes this failure impossible.
