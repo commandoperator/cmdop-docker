@@ -3,6 +3,15 @@ import { siteContent } from './content'
 import { useLiveRevision } from './useLiveRevision'
 
 function cmdopConsoleURL() {
+  // A full URL wins when given. Deriving the console from this page's hostname
+  // plus a port only holds where both surfaces share a host and differ by port —
+  // true on a laptop, false behind a reverse proxy, where the console usually
+  // lives on its own hostname and 443. It is also not fixable by choosing a
+  // nicer port: proxies commonly forward a fixed set (Cloudflare's is
+  // 443/2053/2083/2087/2096/8443), and 63141 is in nobody's.
+  const url = import.meta.env.VITE_CMDOP_CONSOLE_URL
+  if (url) return url
+
   const port = import.meta.env.VITE_CMDOP_CONSOLE_PORT || '63141'
   return `${window.location.protocol}//${window.location.hostname}:${port}`
 }
