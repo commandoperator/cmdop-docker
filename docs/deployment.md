@@ -61,10 +61,76 @@ disabled, and asks the OS for an ephemeral listen port. A fixed mapping such as
 ## Site exposure is separate
 
 The managed Cmdop address exposes the relay console, not the Vite site. For a
-temporary remote demo, place authenticated TLS reverse proxies in front of the
-required ports, forward WebSocket upgrade headers, and set
-`VITE_HMR_CLIENT_PORT` if the public WebSocket port differs from the page port.
+temporary remote demo, place TLS reverse proxies in front of the required ports,
+forward WebSocket upgrade headers, and set `VITE_HMR_CLIENT_PORT` if the public
+WebSocket port differs from the page port.
 
-This Compose stack is a live-editing demo, not a hardened production web
-server. For a normal production site, build the Vite application and serve
-`demo/dist` from a production web server or static hosting platform.
+### Two hostnames, not two paths
+
+Give the site and the console a hostname each. Sharing one origin behind path
+prefixes does not work without rewriting both applications' internals in the
+proxy: Vite serves its client and modules from absolute paths (`/@vite/client`,
+`/src/…`, `/@react-refresh`) and the console is an SPA rooted at `/`.
+
+### Vite rejects an unknown Host — plan for it
+
+A proxied request arrives with the public hostname in `Host`, and Vite answers
+
+```
+403  Blocked request. This host ("demo.example.com") is not allowed.
+```
+
+That check is a DNS-rebinding defence and is worth keeping. Two ways through it:
+
+1. **Declare the hostname** — add it to `server.allowedHosts` in
+   `demo/vite.config.js`. Correct when you control this repository.
+2. **Rewrite `Host` at the proxy** to `localhost`, which Vite always accepts.
+   Correct when you must not fork the image. The page still works because the
+   browser derives the HMR WebSocket URL from its own location plus
+   `VITE_HMR_CLIENT_PORT`, not from what the proxy forwards.
+
+A Traefik example of the second, for a page published on 443:
+
+```yaml
+labels:
+  - "traefik.http.middlewares.vitehost.headers.customrequestheaders.Host=localhost"
+  - "traefik.http.routers.site.rule=Host(`demo.example.com`)"
+  - "traefik.http.routers.site.middlewares=vitehost"
+  - "traefik.http.services.site.loadbalancer.server.port=5173"
+```
+
+with `VITE_HMR_CLIENT_PORT=443` in the environment. Verify all three, because a
+site that loads is not yet a site that live-edits:
+
+```bash
+curl -o /dev/null -w '%{http_code}\n' https://demo.example.com/@vite/client
+curl -s https://demo.example.com/__demo_revision
+curl -o /dev/null -w '%{http_code}\n' -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+     -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+     https://demo.example.com/
+```
+
+### What you are publishing when you publish this
+
+This Compose stack is a live-editing demo, not a hardened production web server.
+Two consequences deserve a decision rather than a default:
+
+**A Vite dev server is not built to face the internet.** Its file-serving
+surface has produced a steady run of advisories — arbitrary file read through
+`@fs` handling, `server.fs.deny` bypasses via queries, backslashes, double
+slashes, and Windows alternate paths (CVE-2025-30208, CVE-2025-58752,
+CVE-2026-39363/39364/39365, CVE-2026-53571). Each was fixed promptly, and each
+required the same precondition: the dev server had to be reachable. Running a
+current Vite closes the known holes; it does not change the shape of the
+surface. Pin an exact version (this repository does), watch the advisories, and
+decide deliberately whether the address may be anonymous. If it may not, put
+authentication in the proxy — that is one middleware, and it removes the
+precondition every one of those advisories needs.
+
+**Whoever reaches the console can rewrite what the site says.** That is the
+demo working as designed, and on a public hostname it is also a defacement
+path. Keep `CMDOP_PERMISSIONS_MODE=default`; `bypass` on a public address is
+not a convenience setting, it is an open shell in the container.
+
+Nothing above applies to a normal production site: build the Vite application
+and serve `demo/dist` from a production web server or static hosting platform.
