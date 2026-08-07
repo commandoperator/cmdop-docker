@@ -2,20 +2,28 @@
 
 ## Cmdop public relay
 
+To request a specific available label — the right shape for any account that
+runs, or may ever run, more than one machine:
+
+```dotenv
+CMDOP_RELAY_MODE=public
+CMDOP_PUBLIC_SUBDOMAIN=my-live-demo
+```
+
 To reuse the managed address provisioned for the organization behind
-`CMDOP_API_KEY`:
+`CMDOP_API_KEY` — only safe while this container is the org's ONLY public
+machine:
 
 ```dotenv
 CMDOP_RELAY_MODE=public
 CMDOP_PUBLIC_SUBDOMAIN=
 ```
 
-To request a specific available label:
-
-```dotenv
-CMDOP_RELAY_MODE=public
-CMDOP_PUBLIC_SUBDOMAIN=my-live-demo
-```
+An empty label means "adopt whatever address my organization already owns". If
+another machine (a laptop, a second container) already serves that address, the
+two will re-register the same hostname at the edge and keep displacing each
+other — each looks briefly online and then loses the address to the other. Pin
+an explicit label per machine and the conflict cannot exist.
 
 Restart Compose. The installed CLI generates the current server config and the
 relay connects outward to the Cmdop edge. The console then becomes available at
@@ -27,11 +35,13 @@ organization's existing address. If none exists, startup stops with an
 actionable error. The generated YAML contains the address but not the platform
 key; `cmdop server` reads `CMDOP_ROUTER_API_KEY` from process memory.
 
-The current managed plan has one free `*.cmdop.dev` address per organization.
-Several machines may connect through that relay, but a second independently
-named relay address is a separate product entitlement. An empty
-`CMDOP_PUBLIC_SUBDOMAIN` reuses the organization's authoritative address; it
-does not invent a new hostname for every container recreation.
+Managed addresses are metered per plan: the Free plan includes one
+`*.cmdop.dev` address per organization, paid plans include several, so one
+account can run a laptop and a container each on its own address in parallel.
+Several machines may connect through one relay's tunnel without consuming
+extra addresses. An empty `CMDOP_PUBLIC_SUBDOMAIN` reuses the organization's
+authoritative address; it does not invent a new hostname for every container
+recreation.
 
 ## Ports and firewall
 

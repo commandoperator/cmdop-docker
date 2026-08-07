@@ -8,7 +8,7 @@ uses secrets as Docker build arguments.
 |---|---|---|
 | `CMDOP_API_KEY` | Cmdop inference and public-edge credential | empty |
 | `CMDOP_RELAY_MODE` | `auto`, `lan`, or `public` | `auto` |
-| `CMDOP_PUBLIC_SUBDOMAIN` | Optional explicit `<name>.cmdop.dev`; empty in `public` mode reuses the organization's provisioned address | empty |
+| `CMDOP_PUBLIC_SUBDOMAIN` | Explicit `<name>.cmdop.dev` label — pin one per machine; empty in `public` mode reuses the organization's provisioned address, which is only safe for the org's single public machine (two machines adopting one address displace each other at the edge) | empty |
 | `CMDOP_ADMIN_PASSWORD` | Initial browser-console password | required |
 | `CMDOP_PERMISSIONS_MODE` | `default`, `strict`, or `bypass` | `default` |
 | `CMDOP_AGENT_CWD` | Mounted workspace used by machine-agent chats | `/workspace/demo` |
