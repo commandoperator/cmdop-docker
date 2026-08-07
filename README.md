@@ -93,11 +93,12 @@ To adapt the stack for another project or public deployment, start with
 
 The same image can also join an **existing** CMDOP server as one more machine —
 no embedded server, no demo, no published ports. Set the target server address
-and its fleet enrollment password in `.env`:
+and its fleet join key in `.env` (print the key with `cmdop server join-key`
+on the relay host):
 
 ```dotenv
 CMDOP_SERVER_URL=https://my-team.cmdop.dev
-CMDOP_ENROLL_PASSWORD=cmdop_enroll_xxxxxxxx
+CMDOP_JOIN_KEY=cmdop_enroll_xxxxxxxx
 ```
 
 Then start the dedicated service:
@@ -106,7 +107,7 @@ Then start the dedicated service:
 docker compose --profile agent up --build agent
 ```
 
-The container enrolls on startup and appears in that server's fleet; the host
+The container joins on startup and appears in that server's fleet; the host
 `./workspace` directory is the agent's working directory. See
 [configuration](docs/configuration.md#agent-mode) for details.
 

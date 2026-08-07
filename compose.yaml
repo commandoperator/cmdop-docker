@@ -46,13 +46,14 @@ services:
       - demo_node_modules:/workspace/demo/node_modules
     stop_grace_period: 20s
 
-  # Agent mode: this container is ONE MORE MACHINE enrolled into an EXISTING
+  # Agent mode: this container is ONE MORE MACHINE joined into an EXISTING
   # Cmdop server — no embedded server, no demo, no published ports. Start it
   # explicitly (the default `docker compose up` is untouched):
   #
   #   docker compose --profile agent up --build agent
   #
-  # Requires CMDOP_SERVER_URL + CMDOP_ENROLL_PASSWORD in .env.
+  # Requires CMDOP_SERVER_URL + CMDOP_JOIN_KEY in .env (print the key with
+  # 'cmdop server join-key' on the relay host).
   agent:
     profiles: ["agent"]
     # The machine name in the fleet derives from the hostname — a random
@@ -74,7 +75,11 @@ services:
     environment:
       CMDOP_CONTAINER_MODE: agent
       CMDOP_SERVER_URL: ${CMDOP_SERVER_URL:-}
+      CMDOP_JOIN_KEY: ${CMDOP_JOIN_KEY:-}
+      # Pre-rename spelling, still honored; prefer CMDOP_JOIN_KEY.
       CMDOP_ENROLL_PASSWORD: ${CMDOP_ENROLL_PASSWORD:-}
+      # Optional per-machine connection PIN, if the relay armed one.
+      CMDOP_MACHINE_PIN: ${CMDOP_MACHINE_PIN:-}
       CMDOP_SERVER_INSECURE: ${CMDOP_SERVER_INSECURE:-0}
       CMDOP_ROUTER_API_KEY: ${CMDOP_API_KEY:-}
       CMDOP_PERMISSIONS_MODE: ${CMDOP_PERMISSIONS_MODE:-default}
