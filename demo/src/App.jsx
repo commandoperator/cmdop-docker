@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { siteContent, links } from './content'
+import { siteContent, links } from './siteContent'
 import { useLiveRevision } from './useLiveRevision'
 import { consoleURL } from './config'
 import { BrandMark } from './BrandMark'
