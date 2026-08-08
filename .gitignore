@@ -7,3 +7,6 @@ demo/dist/
 .DS_Store
 workspace/*
 !workspace/.gitkeep
+# Live Claude Code and Codex logins. Everything here is credential material.
+agents/*
+!agents/.gitkeep

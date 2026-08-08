@@ -52,3 +52,14 @@ important than automatically receiving the latest release.
 The binary is installed under `/opt/cmdop/bin`, outside the persistent
 `/home/cmdop` volume. Container state survives recreation; stale executable
 bytes do not.
+
+## Coding agents
+
+The image also carries the Claude Code and Codex CLIs, installed from npm into
+`/usr/local/bin` — same principle as Cmdop's own binary, and the reason npm is
+used rather than either vendor's installer: both installers write into `$HOME`,
+which here is a volume that would outlive the image. Their state goes the other
+way, redirected by `CLAUDE_CONFIG_DIR` and `CODEX_HOME` into `/home/cmdop/agents`,
+a bind mount from the host `./agents`. Executables belong to the image and a
+rebuild replaces them; logins belong to the host and a rebuild does not touch
+them. See [coding agents](coding-agents.md).

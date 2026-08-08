@@ -236,6 +236,87 @@ run_agent_mode() {
   exec cmdop agent start --foreground --no-power-blocker
 }
 
+resolve_codex_sandbox() {
+  # Codex sandboxes every command it runs; on Linux that sandbox is bubblewrap,
+  # which needs an unprivileged user namespace. A container usually cannot
+  # create one (Docker's default seccomp/AppArmor profiles, Docker Desktop's
+  # LinuxKit kernel, or a host with unprivileged userns disabled), and the
+  # failure is total: bwrap refuses, so every shell command Codex attempts
+  # fails rather than degrading.
+  #
+  # "auto" asks bubblewrap directly instead of guessing from the kernel
+  # version. When it cannot run, the honest configuration is full access —
+  # the container is already the isolation boundary, and it is the same
+  # boundary Cmdop's own agent works inside.
+  case "${CMDOP_CODEX_SANDBOX:-auto}" in
+    read-only|workspace-write|danger-full-access)
+      printf '%s' "${CMDOP_CODEX_SANDBOX}"
+      return 0
+      ;;
+    auto) ;;
+    *)
+      log "CMDOP_CODEX_SANDBOX must be auto, read-only, workspace-write, or danger-full-access."
+      return 1
+      ;;
+  esac
+
+  if codex sandbox /bin/true >/dev/null 2>&1; then
+    printf 'workspace-write'
+  else
+    log "Codex's bubblewrap sandbox cannot start in this container; using danger-full-access." >&2
+    log "The container boundary applies either way. Pin CMDOP_CODEX_SANDBOX to override." >&2
+    printf 'danger-full-access'
+  fi
+}
+
+configure_coding_agents() {
+  # CLAUDE_CONFIG_DIR and CODEX_HOME point both CLIs into ./agents, which
+  # Compose bind-mounts from the host — so a login survives image rebuilds and
+  # volume resets alike. Nothing here writes a credential: the operator signs
+  # in through each CLI's own flow, and that mounted directory is the only
+  # place the resulting token ever lands.
+  #
+  # The subdirectories are created here rather than only in the image, because
+  # a bind mount shadows whatever the image put at that path: on a fresh clone
+  # ./agents is an empty directory carrying just a .gitkeep.
+  local claude_dir="${CLAUDE_CONFIG_DIR:-${HOME}/.claude}"
+  local codex_dir="${CODEX_HOME:-${HOME}/.codex}"
+  if ! mkdir -p "${claude_dir}" "${codex_dir}" 2>/dev/null; then
+    log "Cannot create ${CMDOP_AGENTS_DIR:-${HOME}/agents} subdirectories."
+    log "The host ./agents directory must be writable by UID ${HOST_UID:-$(id -u)}; see docs/coding-agents.md."
+    return 1
+  fi
+  # The tokens are the whole reason this directory exists. On a host bind
+  # mount the default mode comes from the host's umask, not from the image.
+  chmod 0700 "${CMDOP_AGENTS_DIR:-$(dirname "${claude_dir}")}" 2>/dev/null || true
+
+  if command -v codex >/dev/null 2>&1; then
+    local codex_config="${codex_dir}/config.toml"
+    if [[ ! -e "${codex_config}" ]]; then
+      local sandbox_mode
+      sandbox_mode="$(resolve_codex_sandbox)" || return 1
+      cat >"${codex_config}" <<EOF
+# Written once by cmdop-docker when this file was absent. It is never
+# rewritten, so edits here survive container recreation. Delete the file to
+# have the container regenerate it.
+sandbox_mode = "${sandbox_mode}"
+EOF
+      log "Wrote ${codex_config} with sandbox_mode=${sandbox_mode}."
+    fi
+    # The presence of the credential file is the whole test. Asking the CLI
+    # itself would mean a network round trip on every container start.
+    if [[ ! -e "${codex_dir}/auth.json" ]]; then
+      log "Codex is installed and not signed in yet — run: make codex-login"
+    fi
+  fi
+
+  if command -v claude >/dev/null 2>&1; then
+    if [[ ! -e "${claude_dir}/.credentials.json" ]]; then
+      log "Claude Code is installed and not signed in yet — run: make claude-login"
+    fi
+  fi
+}
+
 configure_permissions() {
   case "${CMDOP_PERMISSIONS_MODE:-default}" in
     default|strict|bypass)
@@ -259,6 +340,7 @@ esac
 remove_legacy_home_binary
 clear_stale_runtime
 configure_permissions
+configure_coding_agents
 
 if [[ "${CMDOP_CONTAINER_MODE:-workspace}" == "agent" ]]; then
   run_agent_mode # never returns (execs the agent)

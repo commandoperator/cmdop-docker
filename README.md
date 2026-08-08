@@ -28,6 +28,7 @@ normal Git commit.
 - **Immediate feedback.** Vite HMR updates the browser as the project changes.
 - **Bounded access.** The machine agent works inside the configured project directory.
 - **Durable history.** Finished changes remain in local Git across container recreation.
+- **Agents included.** Claude Code and Codex are installed and ready to sign in.
 
 The repository provides the Docker setup and editable demo. The CMDOP binary is
 installed from the official distribution when the image is built.
@@ -66,6 +67,23 @@ Select the connected machine in the console and try:
 Change the hero accent to cobalt blue and rewrite the headline for a robotics
 studio. Keep it responsive.
 ```
+
+## Coding agents
+
+Claude Code and Codex are already installed in the image. Sign in once, with
+the subscription you already have — there is no API key to configure, and no
+credential of yours goes into this repository:
+
+```bash
+make claude-login
+make codex-login
+```
+
+Each opens its own device-code flow: approve in your browser, paste the code
+back. The token is written to the git-ignored `./agents` directory on the host,
+which is mounted into the container — so a login survives image rebuilds and
+volume resets. Details, including how Codex's sandbox is resolved inside a
+container, are in [coding agents](docs/coding-agents.md).
 
 ## Inside the stack
 
@@ -115,6 +133,7 @@ The container joins on startup and appears in that server's fleet; the host
 
 - [Architecture and process supervision](docs/architecture.md)
 - [Configuration and persistence](docs/configuration.md)
+- [Claude Code and Codex: login, storage, sandboxing](docs/coding-agents.md)
 - [Agent commits and optional GitHub publishing](docs/git-and-github.md)
 - [Public deployment, ports, and firewall](docs/deployment.md)
 - [Troubleshooting and safe support bundle](docs/troubleshooting.md)

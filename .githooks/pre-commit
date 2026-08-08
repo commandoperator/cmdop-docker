@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-blocked_files="$({
-  git diff --cached --name-only --diff-filter=ACMR
-} | grep -E '(^|/)(\.env($|\.)|.*\.(pem|key|p12|pfx)|credentials\.json$)' \
-  | grep -vE '(^|/)\.env\.example$' || true)"
+staged_files="$(git diff --cached --name-only --diff-filter=ACMR)"
+
+# Everything under agents/ is a live Claude Code or Codex login: not only the
+# credential files, but the session transcripts and project history alongside
+# them. The directory is git-ignored, so a staged path here means someone
+# reached for `git add -f` — match on the path rather than on filenames,
+# because the set of files those CLIs write is theirs to change, not ours.
+blocked_files="$(printf '%s\n' "${staged_files}" \
+  | grep -E '(^|/)(\.env($|\.)|.*\.(pem|key|p12|pfx)|\.?credentials\.json$)|^agents/' \
+  | grep -vE '(^|/)\.env\.example$|^agents/\.gitkeep$' || true)"
 
 if [[ -n "${blocked_files}" ]]; then
   echo "Commit blocked: sensitive file names are staged:" >&2

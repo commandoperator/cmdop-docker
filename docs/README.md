@@ -8,6 +8,7 @@ understand or change one part of the setup:
 |---|---|
 | [Architecture](architecture.md) | Processes, ports, workspace binding, and the image layout |
 | [Configuration](configuration.md) | Environment variables, volumes, resets, and permissions |
+| [Coding agents](coding-agents.md) | Claude Code and Codex: signing in, where the login lives, sandboxing |
 | [Git and GitHub](git-and-github.md) | Automatic local commits and optional publishing |
 | [Deployment](deployment.md) | Public relay mode, firewall rules, and site exposure |
 | [Troubleshooting](troubleshooting.md) | Copy-paste diagnostics and known failure modes |
@@ -23,6 +24,7 @@ docker compose logs --tail=200 demo
 docker compose exec demo sh -lc \
   'cmdop version; printf "agent_cwd=%s\n" "$CMDOP_AGENT_CWD"; pwd'
 docker compose exec demo git status --short
+docker compose exec demo sh -lc 'claude --version; codex --version'
 curl -fsS http://localhost:8080/ >/dev/null && echo "site: ok"
 curl -fsS http://localhost:63141/health >/dev/null && echo "console: ok"
 ```
@@ -30,4 +32,7 @@ curl -fsS http://localhost:63141/health >/dev/null && echo "console: ok"
 When asking for help, include that output, the host OS, Docker runtime and
 version, and whether the failure affects the site, the console, or only an agent
 response. Never paste `.env`, `docker compose config`, authentication cookies,
-private configuration, or complete request headers into an issue.
+private configuration, or complete request headers into an issue. The same goes
+for anything under `./agents`, which holds live Claude Code and Codex logins —
+`make agents-status` reports sign-in state without printing a credential, but it
+does name the signed-in account.

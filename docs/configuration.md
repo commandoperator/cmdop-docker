@@ -20,6 +20,9 @@ uses secrets as Docker build arguments.
 | `CMDOP_HOST_PORT` | Host port mapped to the console | `63141` |
 | `HOST_UID`, `HOST_GID` | Runtime identity for Linux bind mounts | `1000` |
 | `CMDOP_BROWSER` | Build-time: install headless Chromium for the agent's browser tools; `0` builds a slimmer image without them | `1` |
+| `CMDOP_CLAUDE_CODE` | Build-time: install the Claude Code CLI; `0` leaves it out | `1` |
+| `CMDOP_CODEX` | Build-time: install the Codex CLI; `0` leaves it out | `1` |
+| `CMDOP_CODEX_SANDBOX` | `auto` probes bubblewrap at startup and picks `workspace-write` or `danger-full-access`; pin to `read-only`, `workspace-write`, or `danger-full-access` to decide yourself — see [coding agents](coding-agents.md#the-codex-sandbox) | `auto` |
 | `VITE_USE_POLLING` | Reliable bind-mount watching | `true` |
 | `VITE_POLL_INTERVAL_MS` | Watch polling interval | `300` |
 | `VITE_HMR_CLIENT_PORT` | Optional public HMR WebSocket port | empty |
@@ -64,6 +67,8 @@ in shell history or a process listing.
 
 - `./demo` is the host-visible editable site.
 - `./config` contains the generated Cmdop configuration.
+- `./agents` holds the Claude Code and Codex logins — **credential material**,
+  git-ignored, shared by both services. See [coding agents](coding-agents.md).
 - `cmdop_state` persists the relay database, identity, and logs.
 - `demo_git` persists the site's isolated Git history.
 - `demo_node_modules` keeps Linux dependencies out of the host tree.
@@ -93,6 +98,10 @@ docker compose up --build
 This is destructive for Cmdop identity, chat history, and the isolated demo Git
 history. Copy anything you need from the volumes before running it. A normal
 `docker compose restart demo` preserves all of that state.
+
+`--volumes` does not reach `./agents`, `./config`, or `./demo`: those are host
+directories, not volumes. Your Claude Code and Codex logins therefore survive
+the reset above, which is the point of keeping them out of `cmdop_state`.
 
 ## Permissions and secret protection
 

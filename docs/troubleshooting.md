@@ -10,6 +10,8 @@
 | `router.cmdop.com ... i/o timeout` | container egress, DNS, VPN, or router | router connectivity checks below |
 | Public `*.cmdop.dev` address fails | provisioning or outbound tunnel | public relay checks below |
 | Changes exist but no local commit appears | instructions or failed verification | isolated Git history and `AGENTS.md` |
+| `claude` or `codex` asks you to log in again | the `./agents` mount | coding-agent login checks below |
+| Codex fails every command with a `bwrap` error | Codex's own sandbox | Codex sandbox checks below |
 
 ## First checks
 
@@ -201,10 +203,72 @@ interrupted turn, or a router timeout can therefore leave a deliberate dirty
 working tree for the next operator to inspect. It never pushes without an
 explicit request and a separately configured repository-scoped credential.
 
+## Coding agent asks you to log in again
+
+A login persists in the host `./agents` directory, so losing it means the
+container is not reading the directory you expect. Confirm the redirect and the
+mount in one shot:
+
+```bash
+docker compose exec demo sh -lc \
+  'echo "$CLAUDE_CONFIG_DIR"; echo "$CODEX_HOME"; ls -la /home/cmdop/agents'
+ls -la agents/
+```
+
+Both paths must sit under `/home/cmdop/agents`, and the two listings must show
+the same contents. If the container's copy is empty while the host's is not, the
+bind mount is missing — check that you did not remove the `./agents` line from
+`compose.yaml`, and recreate the service.
+
+If the container cannot write there, the entrypoint says so and exits:
+
+```text
+[cmdop-demo] Cannot create /home/cmdop/agents subdirectories.
+```
+
+That is the ownership problem below, applied to `./agents`.
+
+Signing in to one service does not sign you in to a *different project* — the
+workspace and agent services share `./agents`, but a second clone of this
+repository has its own. `make agents-status` reports the current state.
+
+## Codex fails every command with a `bwrap` error
+
+```text
+bwrap: No permissions to create a new namespace, likely because the kernel
+does not allow non-privileged user namespaces.
+```
+
+Codex sandboxes each command with bubblewrap, which needs an unprivileged user
+namespace that most containers cannot create. `CMDOP_CODEX_SANDBOX=auto` tests
+for exactly this at startup and writes `sandbox_mode = "danger-full-access"`
+when the probe fails — so seeing this error means the probe's answer never
+reached the config. The config is written only when absent, which is the usual
+cause: an older `agents/codex/config.toml` is still in place.
+
+```bash
+docker compose exec demo sh -lc 'codex sandbox /bin/true; echo "probe=$?"'
+grep sandbox_mode agents/codex/config.toml
+```
+
+A non-zero probe with `workspace-write` in the file is the mismatch. Edit the
+value, or delete the file and restart to have it regenerated:
+
+```bash
+rm agents/codex/config.toml
+docker compose restart demo
+```
+
+Do not answer this by loosening the container instead — `--privileged`,
+`--security-opt seccomp=unconfined`, or `--cap-add SYS_ADMIN` weaken the real
+boundary in order to restore a nested one. Full-access-inside-the-container is
+the smaller change. See [coding agents](coding-agents.md#the-codex-sandbox).
+
 ## Linux bind-mount permissions
 
 Set `HOST_UID` and `HOST_GID` in `.env` to the output of `id -u` and `id -g`,
-then rebuild the image.
+then rebuild the image. This governs every bind mount, `./agents` included —
+the container has to create and write its login directories there.
 
 ## Local commits work but GitHub push does not
 

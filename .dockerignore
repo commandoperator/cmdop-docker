@@ -1,5 +1,8 @@
 .git
 .env
+# Agent logins live here at runtime through a bind mount; they must never be
+# baked into an image layer.
+agents/*
 config/*
 demo/node_modules
 demo/dist

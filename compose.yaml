@@ -12,6 +12,8 @@ services:
         HOST_UID: ${HOST_UID:-1000}
         HOST_GID: ${HOST_GID:-1000}
         CMDOP_BROWSER: ${CMDOP_BROWSER:-1}
+        CMDOP_CLAUDE_CODE: ${CMDOP_CLAUDE_CODE:-1}
+        CMDOP_CODEX: ${CMDOP_CODEX:-1}
     image: cmdop-live-demo:local
     init: true
     # Headless Chromium maps renderer memory into /dev/shm; the Docker
@@ -20,6 +22,7 @@ services:
     restart: unless-stopped
     environment:
       CMDOP_ROUTER_API_KEY: ${CMDOP_API_KEY:-}
+      CMDOP_CODEX_SANDBOX: ${CMDOP_CODEX_SANDBOX:-auto}
       CMDOP_PERMISSIONS_MODE: ${CMDOP_PERMISSIONS_MODE:-default}
       CMDOP_MACHINE_NAME: ${CMDOP_MACHINE_NAME:-cmdop-live-demo}
       CMDOP_AGENT_CWD: ${CMDOP_AGENT_CWD:-/workspace/demo}
@@ -41,6 +44,14 @@ services:
     volumes:
       - cmdop_state:/home/cmdop
       - ./config:/home/cmdop/.config/cmdop
+      # Everything Claude Code and Codex own — including the token each writes
+      # when you sign in through its own login flow. A host directory rather
+      # than a slice of cmdop_state, so a login outlives an image rebuild, a
+      # `down --volumes` reset of Cmdop's identity, and is visible enough to
+      # back up. The agent service mounts the same path: one login per host,
+      # not one per service. Git-ignored, and the pre-commit hook rejects any
+      # staged path under it — treat ./agents as private key material.
+      - ./agents:/home/cmdop/agents
       - ./demo:/workspace/demo
       - demo_git:/workspace/.git
       - demo_node_modules:/workspace/demo/node_modules
@@ -67,6 +78,8 @@ services:
         HOST_UID: ${HOST_UID:-1000}
         HOST_GID: ${HOST_GID:-1000}
         CMDOP_BROWSER: ${CMDOP_BROWSER:-1}
+        CMDOP_CLAUDE_CODE: ${CMDOP_CLAUDE_CODE:-1}
+        CMDOP_CODEX: ${CMDOP_CODEX:-1}
     image: cmdop-live-demo:local
     init: true
     # Headless Chromium (agent browser tools) needs more than the 64 MB default.
@@ -85,8 +98,11 @@ services:
       CMDOP_PERMISSIONS_MODE: ${CMDOP_PERMISSIONS_MODE:-default}
       CMDOP_MACHINE_NAME: ${CMDOP_MACHINE_NAME:-cmdop-docker-agent}
       CMDOP_AGENT_CWD: /workspace
+      CMDOP_CODEX_SANDBOX: ${CMDOP_CODEX_SANDBOX:-auto}
     volumes:
       - cmdop_agent_state:/home/cmdop
+      # Same host directory as the workspace service — see the note there.
+      - ./agents:/home/cmdop/agents
       - ./workspace:/workspace
     stop_grace_period: 20s
 

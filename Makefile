@@ -1,10 +1,19 @@
-.PHONY: help commit claude codex
+.PHONY: help commit claude codex claude-login codex-login agents-status
+
+# Which Compose service the agent targets below run in. Override for the
+# fleet-agent profile:  make claude-login SERVICE=agent
+SERVICE ?= demo
 
 help:
 	@echo "Available commands:"
-	@echo "  make commit - stage, AI commit, and push to main"
-	@echo "  make claude - start Claude Code with permissions bypassed"
-	@echo "  make codex  - start Codex with approvals and sandbox bypassed"
+	@echo "  make commit       - stage, AI commit, and push to main"
+	@echo "  make claude       - start Claude Code with permissions bypassed"
+	@echo "  make codex        - start Codex with approvals and sandbox bypassed"
+	@echo ""
+	@echo "Inside the container (override the service with SERVICE=agent):"
+	@echo "  make claude-login  - sign in to Claude Code"
+	@echo "  make codex-login   - sign in to Codex"
+	@echo "  make agents-status - report both CLIs' version and sign-in state"
 
 commit:
 	@g=$$(git rev-parse --git-dir) || exit 1; \
@@ -26,3 +35,17 @@ claude:
 
 codex:
 	@codex --dangerously-bypass-approvals-and-sandbox
+
+# Both flows print a URL and wait for a code, which is exactly what you want
+# with no browser in the container: sign in on your own machine, paste the code
+# back. The token is written to ./agents on the host, so it outlives the image.
+claude-login:
+	@docker compose exec $(SERVICE) claude auth login
+
+codex-login:
+	@docker compose exec $(SERVICE) codex login --device-auth
+
+agents-status:
+	@docker compose exec $(SERVICE) sh -lc '\
+		claude --version; claude auth status --text || true; \
+		codex --version; codex login status || true'
