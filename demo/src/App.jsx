@@ -1,91 +1,131 @@
 import { useState } from 'react'
-import { siteContent } from './content'
+import { siteContent, links } from './content'
 import { useLiveRevision } from './useLiveRevision'
 import { consoleURL } from './config'
+import { BrandMark } from './BrandMark'
 
-function LiveStatus() {
+function LiveDot() {
   const { status, lastChange } = useLiveRevision()
-  const label = status === 'live' ? 'Live updates connected' : 'Reconnecting updates'
-  const detail = lastChange
-    ? `Last change ${lastChange.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-    : 'Watching the workspace'
+  const live = status === 'live'
+  const title = live
+    ? lastChange
+      ? `Live — last change ${lastChange.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+      : 'Live — watching the workspace'
+    : 'Reconnecting to the dev server'
 
   return (
-    <div className={`live-status live-status--${status}`} role="status" aria-live="polite">
-      <span className="live-status__signal" aria-hidden="true" />
-      <span>
-        <strong>{label}</strong>
-        <small>{detail}</small>
-      </span>
-    </div>
+    <span className={`dot dot--${live ? 'live' : 'off'}`} role="status" aria-live="polite">
+      <span className="dot__light" aria-hidden="true" />
+      <span className="dot__label">{live ? 'Live' : 'Reconnecting'}</span>
+      <span className="sr-only">{title}</span>
+    </span>
   )
 }
 
-function PromptButton({ prompt }) {
+function Prompt({ text }) {
   const [copied, setCopied] = useState(false)
 
-  async function copyPrompt() {
+  async function copy() {
     try {
-      await navigator.clipboard.writeText(prompt)
+      await navigator.clipboard.writeText(text)
       setCopied(true)
-      window.setTimeout(() => setCopied(false), 1800)
+      window.setTimeout(() => setCopied(false), 1600)
     } catch {
       setCopied(false)
     }
   }
 
   return (
-    <button className="prompt" type="button" onClick={copyPrompt}>
-      <span>{prompt}</span>
-      <strong>{copied ? 'Copied' : 'Copy'}</strong>
+    <button className="prompt" type="button" onClick={copy}>
+      <span className="prompt__text">{text}</span>
+      <span className="prompt__action">{copied ? 'Copied' : 'Copy'}</span>
     </button>
   )
 }
 
 export default function App() {
   return (
-    <main>
-      <header className="nav shell">
-        <a className="brand" href="#top" aria-label="Cmdop Live Canvas home">
-          {siteContent.brand}
-        </a>
-        <div className="nav__actions">
-          <LiveStatus />
-          <a className="console-action" href={consoleURL()} target="_blank" rel="noreferrer">
-            Open Cmdop Console
+    <>
+      <header className="nav">
+        <div className="nav__inner shell">
+          <a className="brand" href="#top">
+            <span className="brand__mark" aria-hidden="true">
+              <BrandMark />
+            </span>
+            <span className="brand__name">{siteContent.brand}</span>
           </a>
+          <nav className="nav__links">
+            <LiveDot />
+            <a href={links.docs} target="_blank" rel="noreferrer">
+              Docs
+            </a>
+            <a href={links.github} target="_blank" rel="noreferrer">
+              GitHub
+            </a>
+            <a className="btn btn--primary" href={consoleURL()} target="_blank" rel="noreferrer">
+              Console
+            </a>
+          </nav>
         </div>
       </header>
 
-      <section className="hero shell" id="top">
-        <div className="hero__copy">
-          <h1>{siteContent.headline} {siteContent.headlineCount > 0 && <span className="headline-count">#{siteContent.headlineCount}</span>}</h1>
-          <p>{siteContent.intro}</p>
-          <a className="primary-action" href="#prompts">
-            {siteContent.primaryAction}
-          </a>
-        </div>
-        <figure className="hero__visual">
-          <img src="/hero-live-system.png" alt={siteContent.imageAlt} />
-        </figure>
-      </section>
+      <main id="top">
+        <section className="hero shell">
+          <p className="badge">{siteContent.badge}</p>
+          <h1>{siteContent.headline}</h1>
+          <p className="lede">{siteContent.intro}</p>
+          <div className="hero__actions">
+            <a className="btn btn--primary btn--lg" href={consoleURL()} target="_blank" rel="noreferrer">
+              {siteContent.primaryAction}
+            </a>
+            <a className="btn btn--lg" href={links.github} target="_blank" rel="noreferrer">
+              {siteContent.secondaryAction}
+            </a>
+          </div>
+        </section>
 
-      <section className="prompt-section shell" id="prompts">
-        <div className="prompt-section__heading">
-          <h2>{siteContent.sectionTitle}</h2>
-          <p>{siteContent.sectionIntro}</p>
-        </div>
-        <div className="prompt-grid">
-          {siteContent.prompts.map((prompt) => (
-            <PromptButton key={prompt} prompt={prompt} />
-          ))}
-        </div>
-      </section>
+        <section className="block shell">
+          <h2>{siteContent.channelsTitle}</h2>
+          <p className="block__intro">{siteContent.channelsIntro}</p>
+          <ul className="cards">
+            {siteContent.channels.map((channel) => (
+              <li className="card" key={channel.name}>
+                <h3>{channel.name}</h3>
+                <p>{channel.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-      <footer className="footer shell">
-        <span>{siteContent.brand}</span>
-        <p>{siteContent.footer}</p>
+        <section className="block shell">
+          <h2>{siteContent.promptsTitle}</h2>
+          <p className="block__intro">{siteContent.promptsIntro}</p>
+          <div className="prompts">
+            {siteContent.prompts.map((prompt) => (
+              <Prompt key={prompt} text={prompt} />
+            ))}
+          </div>
+          <p className="note">{siteContent.sourceNote}</p>
+        </section>
+      </main>
+
+      <footer className="footer">
+        <div className="footer__inner shell">
+          <span className="footer__brand">
+            <span className="brand__mark" aria-hidden="true">
+              <BrandMark />
+            </span>
+            {siteContent.footer}
+          </span>
+          <nav className="footer__links">
+            {siteContent.footerLinks.map((link) => (
+              <a key={link.href} href={link.href} target="_blank" rel="noreferrer">
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        </div>
       </footer>
-    </main>
+    </>
   )
 }

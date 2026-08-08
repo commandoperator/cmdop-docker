@@ -8,7 +8,7 @@
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker&logoColor=white)](compose.yaml)
 [![CMDOP](https://img.shields.io/badge/CMDOP-cmdop.com-111827)](https://cmdop.com/products/docker)
 
-[Quick start](#quick-start) | [Inside the stack](#inside-the-stack) | [Documentation](docs/README.md) | [cmdop.com](https://cmdop.com)
+[Live demo](https://demo.cmdop.com) | [Quick start](#quick-start) | [Documentation](https://docs.cmdop.com/docs/deployment/docker) | [cmdop.com](https://cmdop.com)
 
 </div>
 
@@ -21,6 +21,10 @@ an editable project, live browser preview, and persistent Git history.
 Use Claude Code, Codex, or another coding agent to request a change. Watch the
 result appear in the browser, inspect the files, and keep the finished work as a
 normal Git commit.
+
+**See it running first:** [demo.cmdop.com](https://demo.cmdop.com) is this
+repository deployed as-is — the page you land on is the demo project below,
+edited by an agent through the same loop you are about to run locally.
 
 ## What you get
 
@@ -67,6 +71,17 @@ Select the connected machine in the console and try:
 Change the hero accent to cobalt blue and rewrite the headline for a robotics
 studio. Keep it responsive.
 ```
+
+## Ask from somewhere other than the console
+
+The agent in this container is reachable from every CMDOP surface, not only the
+browser console:
+
+- **The web console** on port 63141 — included, no setup.
+- **Telegram, Slack, or Discord** — connect a private bot under **Server → Bots**
+  in the console, pair yourself once, then message it directly. See
+  [messenger bots](https://docs.cmdop.com/docs/deployment/docker/messaging).
+- **The terminal** — `docker compose exec demo cmdop chat`.
 
 ## Coding agents
 
@@ -131,6 +146,10 @@ The container joins on startup and appears in that server's fleet; the host
 
 ## Documentation
 
+Published documentation for this stack lives at
+**[docs.cmdop.com/docs/deployment/docker](https://docs.cmdop.com/docs/deployment/docker)**.
+The pages in this repository are the operator-level detail behind it:
+
 - [Architecture and process supervision](docs/architecture.md)
 - [Configuration and persistence](docs/configuration.md)
 - [Claude Code and Codex: login, storage, sandboxing](docs/coding-agents.md)
@@ -143,7 +162,7 @@ For programmatic Python and Node integrations, see
 
 ## CMDOP ecosystem
 
-[Product](https://cmdop.com) | [CMDOP for Docker](https://cmdop.com/products/docker) | [Documentation](https://docs.cmdop.com) | [SDK](https://github.com/commandoperator/cmdop-sdk) | [Download](https://cmdop.com/download)
+[Product](https://cmdop.com) | [Live demo](https://demo.cmdop.com) | [CMDOP for Docker](https://cmdop.com/products/docker) | [Documentation](https://docs.cmdop.com) | [SDK](https://github.com/commandoperator/cmdop-sdk) | [Download](https://cmdop.com/download)
 
 ## License
 
