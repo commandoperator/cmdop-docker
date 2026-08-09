@@ -100,6 +100,34 @@ which is mounted into the container — so a login survives image rebuilds and
 volume resets. Details, including how Codex's sandbox is resolved inside a
 container, are in [coding agents](docs/coding-agents.md).
 
+## Updating
+
+Cmdop can update itself in place, from the console's update button or `cmdop
+update`. **In a container that update is temporary.** The binary lives at
+`/opt/cmdop/bin`, which is image content rather than a volume, so a self-update
+is written to the container's writable layer — and the next
+`up --force-recreate` discards that layer along with it. The version then reads
+older than the one you installed, and nothing reports an error.
+
+Make it stick with a build:
+
+```bash
+docker compose build demo
+docker compose up -d --force-recreate demo
+docker compose exec demo cmdop version
+```
+
+The build is the part that matters. `up --force-recreate` never rebuilds, so
+repeating it cannot move the version forward. Compose sets `no_cache: true` on
+this service so a build always resolves the current release: the install step is
+a `curl` whose command string never changes, and a cached layer would otherwise
+pin one release indefinitely while every build still reported success.
+
+Nothing of yours is at risk either way — the console password, machine identity
+and your `./agents` logins live in volumes or on the host, not in the layer that
+is replaced. The same applies to the coding agents, whose own auto-updaters are
+deliberately off; see [coding agents](docs/coding-agents.md#updates).
+
 ## Inside the stack
 
 Three supervised processes form one feedback loop:
@@ -111,8 +139,10 @@ Three supervised processes form one feedback loop:
 | Vite | Immediate preview of the same writable files |
 
 The host `./demo` directory is mounted at `/workspace/demo`. CMDOP state, Git
-history, and `node_modules` use named volumes. Recreating the container keeps the
-working state while a rebuild resolves the current CMDOP release.
+history, and `node_modules` use named volumes. Recreating the container keeps
+that working state — but it does replace everything the image owns, the CMDOP
+binary included, which is why a version moves forward on a rebuild and can move
+backward on a bare recreate ([updating](#updating)).
 
 The relay listener stays container-local by default. The site and console bind
 to `127.0.0.1`, and the machine agent connects outbound. The working directory

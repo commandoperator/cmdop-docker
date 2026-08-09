@@ -130,8 +130,11 @@ docker compose up -d --force-recreate demo
 ```
 
 Compose already builds with `no_cache`, so a build resolves whatever version is
-current, exactly as it does for Cmdop. Your login is in `./agents` and is
-unaffected.
+current. Your login is in `./agents` and is unaffected.
+
+Cmdop itself updates on the same principle but with one extra trap: it CAN
+update in place, and a container recreate then throws that update away. See
+[updating](../README.md#updating).
 
 ## Leaving one out
 
