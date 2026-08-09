@@ -7,6 +7,7 @@
 | `localhost:8080` does not load | Vite or its host port | `docker compose ps` and site logs |
 | Console loads but no machine is online | Cmdop agent enrollment | current container logs and machine ID |
 | Agent says it cannot find `src/` | workspace binding or stale CLI | `CMDOP_AGENT_CWD`, instructions, and CLI version |
+| Cmdop reports an older version than you installed | a self-update discarded with the container layer | `cmdop version`, then rebuild before recreating |
 | `router.cmdop.com ... i/o timeout` | container egress, DNS, VPN, or router | router connectivity checks below |
 | Public `*.cmdop.dev` address fails | provisioning or outbound tunnel | public relay checks below |
 | Changes exist but no local commit appears | instructions or failed verification | isolated Git history and `AGENTS.md` |
@@ -109,6 +110,37 @@ docker compose ps -q demo | cut -c1-12
 
 Selecting an older offline row opens that older machine's conversation but
 cannot execute a new turn.
+
+## Cmdop version goes backwards after a recreate
+
+Cmdop updates itself in place — from the console's update button or `cmdop
+update` — and writes the new binary to `/opt/cmdop/bin`. That path is **image
+content, not a volume**, so the update lives in the container's writable layer.
+`--force-recreate` discards that layer, and the container comes back on
+whatever release the image was built with. Nothing reports an error; the
+version simply reads older than the one you installed.
+
+```bash
+docker compose exec demo cmdop version
+```
+
+Rebuild to move the image forward, then recreate:
+
+```bash
+docker compose build demo
+docker compose up -d --force-recreate demo
+```
+
+The build is what matters here. `up --force-recreate` on its own never
+rebuilds, so repeating it cannot fix this. Compose sets `no_cache: true` on
+this service for the same reason: the install step is a `curl` whose command
+string never changes, so a cached layer would pin one release indefinitely
+while every build still reported success.
+
+Your state is unaffected either way — the console password, machine identity
+and the `./agents` logins are all in volumes or on the host, not in the layer
+that was discarded. Left alone the container also self-updates again on its
+own; rebuilding just stops the next recreate from undoing it.
 
 ## Agent does not see project instructions
 
