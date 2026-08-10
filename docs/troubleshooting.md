@@ -154,10 +154,9 @@ docker compose up -d --force-recreate demo
 ```
 
 The build is what matters here. `up --force-recreate` on its own never
-rebuilds, so repeating it cannot fix this. Compose sets `no_cache: true` on
-this service for the same reason: the install step is a `curl` whose command
-string never changes, so a cached layer would pin one release indefinitely
-while every build still reported success.
+rebuilds, so repeating it cannot fix this. Compose sets `pull: true`, which
+refreshes the published image the binary is copied from, so the build picks up
+the current release.
 
 Your state is unaffected either way — the console password, machine identity
 and the `./agents` logins are all in volumes or on the host, not in the layer

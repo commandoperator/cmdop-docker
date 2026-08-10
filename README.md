@@ -118,10 +118,9 @@ docker compose exec demo cmdop version
 ```
 
 The build is the part that matters. `up --force-recreate` never rebuilds, so
-repeating it cannot move the version forward. Compose sets `no_cache: true` on
-this service so a build always resolves the current release: the install step is
-a `curl` whose command string never changes, and a cached layer would otherwise
-pin one release indefinitely while every build still reported success.
+repeating it cannot move the version forward. Compose sets `pull: true`, which
+refreshes the images the build copies from — including the one carrying the
+Cmdop binary — so a build resolves the current release.
 
 Nothing of yours is at risk either way — the console password, machine identity
 and your `./agents` logins live in volumes or on the host, not in the layer that
@@ -169,15 +168,15 @@ The image — **[hub.docker.com/r/markolofsen/cmdop](https://hub.docker.com/r/ma
 adds only the file it copies. `linux/amd64` and `linux/arm64`, built from the
 published release binary and verified against its `SHA256SUMS`.
 
-> **Pin the version in production.** `:latest` in a `Dockerfile` pins nothing
-> and changes under you — use `markolofsen/cmdop:v1.1.141`.
+> **You do not pin, and you do not chase releases.** `:latest` is what the
+> image is for: the agent keeps itself current at runtime — it checks hourly and
+> applies updates in place — so a container built months ago is running today's
+> version. A pinned tag (`markolofsen/cmdop:vX.Y.Z`) exists for a build that
+> must be byte-reproducible, and costs you the job of bumping it.
 >
-> **Prefer a build-time fetch?** The installer still works and needs no
-> registry: `RUN curl -fsSL https://install.cmdop.com | sh -s -- --prefix=/usr/local/bin`
-> (on Alpine, `apk add --no-cache curl ca-certificates` first). Either way it
-> needs **v1.1.138 or newer** — v1.1.137 installs fine and then dies with
-> `unknown command "sidecar"`, because the command was committed before it was
-> released.
+> **Prefer a build-time fetch?** The installer needs no registry:
+> `RUN curl -fsSL https://install.cmdop.com | sh -s -- --prefix=/usr/local/bin`
+> (on Alpine, `apk add --no-cache curl ca-certificates` first).
 >
 > On Alpine the `RUN` needs `curl` and `ca-certificates` first
 > (`apk add --no-cache curl ca-certificates`); Debian-family images usually

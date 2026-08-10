@@ -37,9 +37,12 @@ release is CGO-free, so gRPC, SQLite, and TLS need no extra shared libraries.
 The base provides CA certificates, DNS userspace, Bash, coreutils, curl, Git,
 OpenSSH, and procps. Cmdop carries its own pinned file-search runtime.
 
-The Dockerfile installs Cmdop through the unpinned official installer. Compose
-sets `pull: true` and disables the layer cache so a build resolves the current
-published CLI:
+The Dockerfile copies the Cmdop binary from its published image
+([markolofsen/cmdop](https://hub.docker.com/r/markolofsen/cmdop)) rather than
+running an installer at build time. Compose sets `pull: true`, which refreshes
+that image, so a build still resolves the current published CLI — and because
+the layer is now a plain `COPY`, a rebuild that changes nothing else takes
+about a second instead of minutes:
 
 ```bash
 docker compose build

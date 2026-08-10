@@ -134,8 +134,17 @@ docker compose up -d --force-recreate demo
 > `/opt/cmdop/bin` and its own switch is `CMDOP_NO_AUTO_UPDATE`. The name is
 > easy to read as a global kill switch — it is not.
 
-Compose already builds with `no_cache`, so a build resolves whatever version is
-current. Your login is in `./agents` and is unaffected.
+Compose sets `pull: true`, but the npm install layer itself is cached, so
+`@latest` freezes at whatever it resolved to when that layer was first built.
+Use `--no-cache` when you specifically want to move these two CLIs forward:
+
+```bash
+docker compose build --no-cache demo
+```
+
+That is the trade for a rebuild that takes a second rather than minutes; before
+2026-08-11 the whole service was built with `no_cache`, which kept these current
+at the cost of reinstalling Cmdop on every single build. Your login is in `./agents` and is unaffected.
 
 Cmdop itself updates on the same principle but with one extra trap: it CAN
 update in place, and a container recreate then throws that update away. See
