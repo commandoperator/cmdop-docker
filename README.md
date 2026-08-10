@@ -152,27 +152,40 @@ To adapt the stack for another project or public deployment, start with
 [configuration and persistence](docs/configuration.md) and
 [deployment and firewall guidance](docs/deployment.md).
 
-## Agent mode
+## Add Cmdop to your own container
 
-The same image can also join an **existing** CMDOP server as one more machine —
-no embedded server, no demo, no published ports. Set the target server address
-and its fleet join key in `.env` (print the key with `cmdop server join-key`
-on the relay host):
+This repository is a demo stand. To put Cmdop **in a container you already
+have**, you do not need it at all — add two lines to your own `Dockerfile`:
 
-```dotenv
-CMDOP_SERVER_URL=https://my-team.cmdop.dev
-CMDOP_JOIN_KEY=cmdop_enroll_xxxxxxxx
+```dockerfile
+FROM your-image                                    # unchanged
+COPY --from=cmdop/cli:latest /cmdop /usr/local/bin/cmdop
+ENTRYPOINT ["cmdop", "sidecar", "--"]
+CMD ["your-app", "--your", "flags"]                # unchanged
 ```
 
-Then start the dedicated service:
+Then pass the fleet's join key when you run it:
 
 ```bash
-docker compose --profile agent up --build agent
+docker run -d \
+  -e CMDOP_SERVER_URL=https://my-team.cmdop.dev \
+  -e CMDOP_JOIN_KEY=cmdop_enroll_xxxxxxxx \
+  -e CMDOP_MACHINE_NAME=api-01 \
+  your-image
 ```
 
-The container joins on startup and appears in that server's fleet; the host
-`./workspace` directory is the agent's working directory. See
-[configuration](docs/configuration.md#agent-mode) for details.
+`cmdop sidecar` starts the agent in the background and then **execs your
+command**, so your process keeps PID 1: `docker stop`, exit codes and
+`restart:` policies behave exactly as they did before. With no join key in the
+environment it is a plain exec and Cmdop stays out of the way — the same image
+runs unchanged where it was never enrolled.
+
+Name the machine with `CMDOP_MACHINE_NAME`. Without it the name falls back to
+the container's hostname, which Docker regenerates on every recreate, so the
+machine is renamed on every update. Mount a volume at the agent's `HOME` to
+keep its identity across recreates.
+
+This works on any base image — the binary links no libc.
 
 ## Documentation
 

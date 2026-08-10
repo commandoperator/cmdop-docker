@@ -57,58 +57,26 @@ services:
       - demo_node_modules:/workspace/demo/node_modules
     stop_grace_period: 20s
 
-  # Agent mode: this container is ONE MORE MACHINE joined into an EXISTING
-  # Cmdop server — no embedded server, no demo, no published ports. Start it
-  # explicitly (the default `docker compose up` is untouched):
-  #
-  #   docker compose --profile agent up --build agent
-  #
-  # Requires CMDOP_SERVER_URL + CMDOP_JOIN_KEY in .env (print the key with
-  # 'cmdop server join-key' on the relay host).
-  agent:
-    profiles: ["agent"]
-    # The machine name in the fleet derives from the hostname — a random
-    # container id makes an unrecognizable roster entry.
-    hostname: ${CMDOP_MACHINE_NAME:-cmdop-docker-agent}
-    build:
-      context: .
-      no_cache: true
-      pull: true
-      args:
-        HOST_UID: ${HOST_UID:-1000}
-        HOST_GID: ${HOST_GID:-1000}
-        CMDOP_BROWSER: ${CMDOP_BROWSER:-1}
-        CMDOP_CLAUDE_CODE: ${CMDOP_CLAUDE_CODE:-1}
-        CMDOP_CODEX: ${CMDOP_CODEX:-1}
-    image: cmdop-live-demo:local
-    init: true
-    # Headless Chromium (agent browser tools) needs more than the 64 MB default.
-    shm_size: "1gb"
-    restart: unless-stopped
-    environment:
-      CMDOP_CONTAINER_MODE: agent
-      CMDOP_SERVER_URL: ${CMDOP_SERVER_URL:-}
-      CMDOP_JOIN_KEY: ${CMDOP_JOIN_KEY:-}
-      # Pre-rename spelling, still honored; prefer CMDOP_JOIN_KEY.
-      CMDOP_ENROLL_PASSWORD: ${CMDOP_ENROLL_PASSWORD:-}
-      # Optional per-machine connection PIN, if the relay armed one.
-      CMDOP_MACHINE_PIN: ${CMDOP_MACHINE_PIN:-}
-      CMDOP_SERVER_INSECURE: ${CMDOP_SERVER_INSECURE:-0}
-      CMDOP_ROUTER_API_KEY: ${CMDOP_API_KEY:-}
-      CMDOP_PERMISSIONS_MODE: ${CMDOP_PERMISSIONS_MODE:-default}
-      CMDOP_MACHINE_NAME: ${CMDOP_MACHINE_NAME:-cmdop-docker-agent}
-      CMDOP_AGENT_CWD: /workspace
-      CMDOP_CODEX_SANDBOX: ${CMDOP_CODEX_SANDBOX:-auto}
-    volumes:
-      - cmdop_agent_state:/home/cmdop
-      # Same host directory as the workspace service — see the note there.
-      - ./agents:/home/cmdop/agents
-      - ./workspace:/workspace
-    stop_grace_period: 20s
+# Joining an existing fleet is no longer a service in this file.
+#
+# It used to be a second `agent:` profile here — a near-duplicate of the demo
+# service that rebuilt the same 2 GB image (Chromium, two coding CLIs, a Vite
+# demo) to run one binary. Adding cmdop to a container is now two lines in YOUR
+# OWN Dockerfile, with no repository to clone and no .env to fill in:
+#
+#   COPY --from=cmdop/cli:latest /cmdop /usr/local/bin/cmdop
+#   ENTRYPOINT ["cmdop", "sidecar", "--"]
+#   CMD ["your-app"]
+#
+# `cmdop sidecar` starts the agent in the background and then execs your
+# command, so YOUR process keeps PID 1 and Docker's signals, exit codes and
+# restart policy are unchanged. Enrolment reads CMDOP_JOIN_KEY and
+# CMDOP_SERVER_URL from the environment.
+#
+# This repository is the live DEMO stand, and now only that.
 
 volumes:
   cmdop_state:
-  cmdop_agent_state:
   demo_git:
   demo_node_modules:
 

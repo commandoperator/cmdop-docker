@@ -4,11 +4,6 @@ set -Eeuo pipefail
 readonly DEMO_DIR="/workspace/demo"
 readonly SERVER_CONFIG="${CMDOP_CONFIG_DIR}/server.yaml"
 readonly ADMIN_PASSWORD_FILE="${CMDOP_ADMIN_PASSWORD_FILE:-/run/secrets/cmdop_admin_password}"
-readonly JOIN_KEY_FILE="${CMDOP_JOIN_KEY_FILE:-/run/secrets/cmdop_join_key}"
-# Pre-rename spellings (the CLI renamed `cmdop enroll` to `cmdop join` and the
-# secret's one term is "join key"). Still honored so an existing .env keeps
-# working; new deployments should use CMDOP_JOIN_KEY.
-readonly LEGACY_ENROLL_PASSWORD_FILE="${CMDOP_ENROLL_PASSWORD_FILE:-/run/secrets/cmdop_enroll_password}"
 
 server_pid=""
 agent_pid=""
@@ -169,73 +164,6 @@ configure_relay() {
   fi
 }
 
-resolve_join_key() {
-  # Resolution order: new name, new secret file, then the pre-rename
-  # spellings. Every hit but the first-listed logs where the value came from,
-  # so a mixed .env cannot silently surprise.
-  if [[ -n "${CMDOP_JOIN_KEY:-}" ]]; then
-    printf '%s' "${CMDOP_JOIN_KEY}"
-    return 0
-  fi
-  if [[ -r "${JOIN_KEY_FILE}" ]]; then
-    log "Reading the join key from ${JOIN_KEY_FILE}." >&2
-    cat "${JOIN_KEY_FILE}"
-    return 0
-  fi
-  if [[ -n "${CMDOP_ENROLL_PASSWORD:-}" ]]; then
-    log "CMDOP_ENROLL_PASSWORD is the pre-rename spelling; prefer CMDOP_JOIN_KEY." >&2
-    printf '%s' "${CMDOP_ENROLL_PASSWORD}"
-    return 0
-  fi
-  if [[ -r "${LEGACY_ENROLL_PASSWORD_FILE}" ]]; then
-    log "${LEGACY_ENROLL_PASSWORD_FILE} is the pre-rename secret path; prefer ${JOIN_KEY_FILE}." >&2
-    cat "${LEGACY_ENROLL_PASSWORD_FILE}"
-    return 0
-  fi
-  return 1
-}
-
-run_agent_mode() {
-  # Agent mode: this container is ONE MORE MACHINE in an existing fleet — no
-  # embedded server, no demo project, no Vite. The CLI already supports the
-  # whole path; this branch only wires it.
-  if [[ -z "${CMDOP_SERVER_URL:-}" ]]; then
-    log "CMDOP_SERVER_URL is required when CMDOP_CONTAINER_MODE=agent."
-    return 1
-  fi
-
-  local join_key
-  if ! join_key="$(resolve_join_key)"; then
-    log "CMDOP_JOIN_KEY (or a readable ${JOIN_KEY_FILE}) is required when CMDOP_CONTAINER_MODE=agent. Print the fleet's key with 'cmdop server join-key' on the relay host."
-    return 1
-  fi
-
-  local workdir="${CMDOP_AGENT_CWD:-/workspace}"
-  mkdir -p "${workdir}"
-  cd "${workdir}"
-
-  local join_args=(--server "${CMDOP_SERVER_URL}" --no-agent)
-  if [[ -n "${CMDOP_MACHINE_NAME:-}" ]]; then
-    join_args+=(--display-name "${CMDOP_MACHINE_NAME}")
-  fi
-  if [[ -n "${CMDOP_MACHINE_PIN:-}" ]]; then
-    join_args+=(--machine-pin "${CMDOP_MACHINE_PIN}")
-  fi
-  if [[ "${CMDOP_SERVER_INSECURE:-0}" == "1" ]]; then
-    join_args+=(--insecure)
-  fi
-
-  # Re-joining on every start is idempotent: the join key is a durable
-  # multi-use fleet secret, and a rotated one is picked up automatically.
-  cmdop join "${join_key}" "${join_args[@]}" >/dev/null
-  log "Joined ${CMDOP_SERVER_URL}; starting the machine agent in ${workdir}."
-
-  # exec: the agent becomes the supervised child of the container init, so
-  # signals reach it directly and its exit status is the container's.
-  trap - TERM INT EXIT
-  exec cmdop agent start --foreground --no-power-blocker
-}
-
 resolve_codex_sandbox() {
   # Codex sandboxes every command it runs; on Linux that sandbox is bubblewrap,
   # which needs an unprivileged user namespace. A container usually cannot
@@ -329,23 +257,10 @@ configure_permissions() {
   esac
 }
 
-case "${CMDOP_CONTAINER_MODE:-workspace}" in
-  workspace|agent) ;;
-  *)
-    log "CMDOP_CONTAINER_MODE must be workspace or agent."
-    exit 1
-    ;;
-esac
-
 remove_legacy_home_binary
 clear_stale_runtime
 configure_permissions
 configure_coding_agents
-
-if [[ "${CMDOP_CONTAINER_MODE:-workspace}" == "agent" ]]; then
-  run_agent_mode # never returns (execs the agent)
-  exit 1
-fi
 
 cd "${DEMO_DIR}"
 ensure_node_modules

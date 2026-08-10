@@ -26,42 +26,23 @@ uses secrets as Docker build arguments.
 | `VITE_USE_POLLING` | Reliable bind-mount watching | `true` |
 | `VITE_POLL_INTERVAL_MS` | Watch polling interval | `300` |
 | `VITE_HMR_CLIENT_PORT` | Optional public HMR WebSocket port | empty |
-| `CMDOP_SERVER_URL` | Agent mode: address of the existing Cmdop server to join | empty |
-| `CMDOP_JOIN_KEY` | Agent mode: the fleet's join key (`cmdop_enroll_...`) — print it with `cmdop server join-key` on the relay host (`CMDOP_ENROLL_PASSWORD` is the pre-rename spelling, still honored) | empty |
-| `CMDOP_MACHINE_PIN` | Agent mode: per-machine connection PIN, only if the relay operator armed one | empty |
-| `CMDOP_SERVER_INSECURE` | Agent mode: `1` skips TLS verification for a self-signed self-hosted server | `0` |
 
-## Agent mode
+## Adding Cmdop to your own container
 
-The same image can run as a plain machine agent joined into an existing
-Cmdop server — no embedded server, no demo project, no published ports:
+This repository no longer carries an agent service. Putting Cmdop in a
+container you already have needs nothing from here — two lines in your own
+`Dockerfile`:
 
-```bash
-docker compose --profile agent up --build agent
+```dockerfile
+COPY --from=cmdop/cli:latest /cmdop /usr/local/bin/cmdop
+ENTRYPOINT ["cmdop", "sidecar", "--"]
 ```
 
-Set `CMDOP_SERVER_URL` and `CMDOP_JOIN_KEY` in `.env` first. The join key is
-the fleet's durable multi-use secret: print it with `cmdop server join-key` on
-the relay host, or copy it from the console's add-machine dialog. The
-container re-joins on every start — that is idempotent and picks up a rotated
-key. Agent state persists in the dedicated `cmdop_agent_state` volume; the
-host `./workspace` directory is the agent's working directory. The default
-`docker compose up` workspace service is unaffected.
-
-Compose mounts the admin password as `/run/secrets/cmdop_admin_password`; it is
-not placed in the container environment. Cmdop reads it only when its durable
-store has no admin credential. Changing `.env` later does not rotate an
-existing password. Rotate it explicitly, then restart the service:
-
-```bash
-docker compose exec demo cmdop server admin-password --reset
-docker compose restart demo
-```
-
-The password command stores a hash and invalidates existing browser sessions.
-`--reset` generates a value that is displayed once. `--set <value>` is also
-available, but putting a real password directly on a command line may retain it
-in shell history or a process listing.
+`cmdop sidecar` starts the agent in the background and execs your command, so
+your process keeps PID 1. Enrolment reads `CMDOP_JOIN_KEY` (or
+`CMDOP_JOIN_KEY_FILE` for a mounted secret) and `CMDOP_SERVER_URL` from that
+container's environment; name it with `CMDOP_MACHINE_NAME`. See the
+[README](../README.md#add-cmdop-to-your-own-container).
 
 ## Storage boundaries
 
