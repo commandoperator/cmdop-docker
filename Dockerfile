@@ -1,8 +1,14 @@
+# The cmdop binary comes from its own published image rather than an installer
+# run at build time. Same bytes, no network fetch inside the build, and — the
+# reason that matters here — the layer becomes CACHEABLE, which is what lets
+# compose.yaml drop `no_cache: true`.
+ARG CMDOP_IMAGE=markolofsen/cmdop:latest
+FROM ${CMDOP_IMAGE} AS cmdopbin
+
 FROM node:24-bookworm
 
 ARG HOST_UID=1000
 ARG HOST_GID=1000
-ARG CMDOP_INSTALL_URL=https://install.cmdop.com
 ARG CMDOP_BROWSER=1
 ARG CMDOP_CLAUDE_CODE=1
 ARG CMDOP_CODEX=1
@@ -70,9 +76,20 @@ RUN groupmod --new-name cmdop --gid "${HOST_GID}" node \
 # are not.
 #
 # The npm packages are thin: each pulls a per-platform native binary through an
-# optional dependency, so nothing here runs on Node at runtime. Unpinned for
-# the same reason Cmdop is — Compose builds with no_cache, so a build resolves
-# whatever is current.
+# optional dependency, so nothing here runs on Node at runtime.
+#
+# They are unpinned (`@latest`), and that used to be resolved on every build
+# because Compose ran with `no_cache: true`. It no longer does — cmdop now
+# arrives as a cacheable COPY — so THIS layer caches too, and `@latest` freezes
+# at whatever it resolved to when the layer was first built.
+#
+# That is the honest trade for a fast rebuild, and the escape is explicit rather
+# than implicit:
+#
+#   docker compose build --no-cache demo    # refresh Claude Code / Codex
+#
+# The alternative — keeping no_cache for everyone so two third-party CLIs stay
+# current — made every rebuild reinstall cmdop as well.
 #
 # The other half of that split is CLAUDE_CONFIG_DIR / CODEX_HOME above. Left
 # alone, each CLI scatters state across HOME — Claude Code writes ~/.claude
@@ -101,10 +118,10 @@ WORKDIR /workspace/demo
 
 USER cmdop
 
-# The official installer owns architecture selection and checksum validation.
-# Running it unprivileged keeps host service files out of the container.
-RUN curl -fsSL "${CMDOP_INSTALL_URL}" \
-    | CMDOP_QUIET=1 bash -s -- --prefix=/opt/cmdop/bin
+# The binary, copied from the published image. Architecture selection is
+# buildx's job here (the image is a multi-arch manifest), and the checksum was
+# verified when that image was built — see cmdop_go/release/docker.
+COPY --from=cmdopbin --chown=cmdop:cmdop /cmdop /opt/cmdop/bin/cmdop
 
 # Fail at build time when the selected distribution predates the container
 # runtime contract this image relies on. This is clearer than boot-looping on an

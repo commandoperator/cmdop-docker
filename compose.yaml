@@ -4,9 +4,14 @@ services:
   demo:
     build:
       context: .
-      # Cmdop is installed from the unpinned official installer. Disable the
-      # layer cache so every build resolves the current release.
-      no_cache: true
+      # `pull: true` refreshes the base images — including markolofsen/cmdop,
+      # which the Dockerfile copies the binary from, so a rebuild still picks up
+      # the current release.
+      #
+      # `no_cache: true` used to sit here because cmdop was installed by a
+      # network fetch that the cache would otherwise freeze. The binary now
+      # arrives as a COPY from a pinned-by-digest image, so the layer is
+      # legitimately cacheable and rebuilds stopped costing a full reinstall.
       pull: true
       args:
         HOST_UID: ${HOST_UID:-1000}
