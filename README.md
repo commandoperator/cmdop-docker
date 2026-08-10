@@ -164,10 +164,11 @@ ENTRYPOINT ["cmdop", "sidecar", "--"]
 CMD ["your-app", "--your", "flags"]                # unchanged
 ```
 
-> **Requires a release newer than v1.1.137.** `cmdop sidecar` is in the code but
-> not yet in a published binary — an image built against v1.1.137 installs
-> correctly and then fails with `unknown command "sidecar"` (verified
-> 2026-08-10). Check with `cmdop --version` inside the image.
+> **Needs v1.1.138 or newer**, which is what `install.cmdop.com` serves — so a
+> build today just works (verified 2026-08-10). Older is the failure to know:
+> v1.1.137 installs correctly and then dies with `unknown command "sidecar"`,
+> because the command was committed before it was released. Pin an older
+> version and check `cmdop --version` inside the image.
 >
 > **Also coming:** once the `cmdop/cli` image is published, the install line
 > becomes `COPY --from=cmdop/cli:latest /cmdop /usr/local/bin/cmdop`, which
