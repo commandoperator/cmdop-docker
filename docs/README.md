@@ -1,5 +1,21 @@
 # Documentation
 
+> **Who these pages are for.** This repository is the **live demo stand** — a
+> Cmdop relay, an agent, a Vite site the agent rewrites, and two coding CLIs, in
+> one container. Everything below documents *that stand*.
+>
+> **Adding Cmdop to a container you already own is a different, much shorter
+> story** — two lines in your own `Dockerfile`, none of the variables or
+> failure modes on these pages:
+>
+> ```dockerfile
+> RUN curl -fsSL https://install.cmdop.com | sh -s -- --prefix=/usr/local/bin
+> ENTRYPOINT ["cmdop", "sidecar", "--"]
+> ```
+>
+> See the [root README](../README.md#add-cmdop-to-your-own-container). If that
+> is what you came for, you can stop reading here.
+
 Start with the root [README](../README.md). It contains the shortest path from
 an empty machine to a live-editing site. Use these pages when you need to
 understand or change one part of the setup:

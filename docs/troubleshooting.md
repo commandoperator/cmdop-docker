@@ -1,5 +1,17 @@
 # Troubleshooting
 
+Every failure on this page belongs to **this demo stand** — the Vite site, the
+Docker host, the two coding CLIs, or this container's relay. They are the moving
+parts a stand has and a plain agent does not.
+
+If you added Cmdop to a container you already own (`cmdop sidecar`, two lines in
+your own `Dockerfile`), you have none of these parts and will meet none of these
+symptoms. The one page you want is
+[the root README](../README.md#add-cmdop-to-your-own-container).
+
+The symptom map's middle column names the layer, and the sections below are
+grouped the same way — check the layer first, then the section.
+
 ## Symptom map
 
 | Symptom | Most likely layer | Start here |
@@ -14,7 +26,9 @@
 | `claude` or `codex` asks you to log in again | the `./agents` mount | coding-agent login checks below |
 | Codex fails every command with a `bwrap` error | Codex's own sandbox | Codex sandbox checks below |
 
-## First checks
+## The Docker host
+
+### First checks
 
 ```bash
 docker compose ps
@@ -45,7 +59,7 @@ If dependencies changed, restart the service. The entrypoint compares
 `package-lock.json` with the dependency volume and runs `npm ci` only when
 needed.
 
-## Colima loses outbound networking
+### Colima loses outbound networking
 
 After a Mac wakes or changes Wi-Fi/VPN routes, Colima can retain stale VM
 network state. Typical symptoms are:
@@ -90,7 +104,15 @@ Retry after the route is healthy. If the problem repeatedly returns after every
 sleep or network switch, update Colima/Lima or use another Docker runtime rather
 than changing this project's Dockerfile.
 
-## Agent is offline or stale after recreation
+### Linux bind-mount permissions
+
+Set `HOST_UID` and `HOST_GID` in `.env` to the output of `id -u` and `id -g`,
+then rebuild the image. This governs every bind mount, `./agents` included —
+the container has to create and write its login directories there.
+
+## This container's relay and agent
+
+### Agent is offline or stale after recreation
 
 The entrypoint clears persisted PID and status files before it starts Cmdop.
 Check current logs and health rather than trusting an old machine row in the
@@ -111,7 +133,7 @@ docker compose ps -q demo | cut -c1-12
 Selecting an older offline row opens that older machine's conversation but
 cannot execute a new turn.
 
-## Cmdop version goes backwards after a recreate
+### Cmdop version goes backwards after a recreate
 
 Cmdop updates itself in place — from the console's update button or `cmdop
 update` — and writes the new binary to `/opt/cmdop/bin`. That path is **image
@@ -142,7 +164,53 @@ and the `./agents` logins are all in volumes or on the host, not in the layer
 that was discarded. Left alone the container also self-updates again on its
 own; rebuilding just stops the next recreate from undoing it.
 
-## Agent does not see project instructions
+### Public relay does not connect
+
+Public mode requires a valid `CMDOP_API_KEY`, an organization-provisioned or
+available subdomain, DNS, and outbound TCP access to
+`proxy.cmdop.dev:4443`. The public edge uses HTTPS `443`; the origin container
+does not need an inbound `443` mapping.
+
+Check the requested topology and the non-secret generated fields:
+
+```bash
+docker compose exec demo sh -lc \
+  'sed -n -E "/^[[:space:]]*(mode|subdomain):/p" \
+  /home/cmdop/.config/cmdop/server.yaml'
+docker compose exec demo getent hosts proxy.cmdop.dev
+docker compose exec demo bash -lc \
+  'timeout 10 bash -c "</dev/tcp/proxy.cmdop.dev/4443"'
+```
+
+Explicit `CMDOP_RELAY_MODE=public` with an empty
+`CMDOP_PUBLIC_SUBDOMAIN` resolves the already-provisioned address for the
+organization that issued `CMDOP_API_KEY`. A key from another account cannot
+resolve or authorize that address. The free managed plan currently provides one
+address per organization; recreating Docker reuses it instead of allocating a
+new hostname.
+
+The managed address exposes the Cmdop console, not the Vite site on `8080`.
+Publishing the site is a separate reverse-proxy or hosting decision described
+in [Deployment](deployment.md#site-exposure-is-separate).
+
+### Warnings that are usually non-fatal
+
+- `dbus-launch` or OS keyring unavailable: expected in a headless Linux
+  container. Cmdop falls back to its encrypted file store in the persistent
+  home volume.
+- `Not signed in — starting locally`: the local relay and UI can run without an
+  interactive account login. Agent inference still requires `CMDOP_API_KEY`.
+- An old machine-key decrypt warning after recreating containers: verify that
+  the current machine enrolls and becomes online. Reset volumes only if you
+  deliberately want a new identity and accept losing local state.
+
+Treat an unhealthy container, an absent online machine, repeated process exits,
+or a failed `/health` request as fatal even if one of these warnings is also
+present.
+
+## The agent's view of the demo project
+
+### Agent does not see project instructions
 
 Confirm both the executable and the explicit workspace binding:
 
@@ -181,7 +249,7 @@ docker compose exec demo cmdop version
 The current command should resolve through `/usr/local/bin/cmdop` to
 `/opt/cmdop/bin/cmdop`, not to `/home/cmdop/.local/bin/cmdop`.
 
-## Agent sees the project but a turn still fails
+### Agent sees the project but a turn still fails
 
 Workspace discovery and model inference are separate stages. A stream event
 such as `Loaded context · AGENTS.md` proves the project was found even if the
@@ -205,22 +273,7 @@ If it times out while the same command works on the macOS host, restart Colima
 or fix the VPN/firewall route. If both paths connect, retry the turn and inspect
 the latest logs. Never put the API key on a diagnostic command line.
 
-## Warnings that are usually non-fatal
-
-- `dbus-launch` or OS keyring unavailable: expected in a headless Linux
-  container. Cmdop falls back to its encrypted file store in the persistent
-  home volume.
-- `Not signed in — starting locally`: the local relay and UI can run without an
-  interactive account login. Agent inference still requires `CMDOP_API_KEY`.
-- An old machine-key decrypt warning after recreating containers: verify that
-  the current machine enrolls and becomes online. Reset volumes only if you
-  deliberately want a new identity and accept losing local state.
-
-Treat an unhealthy container, an absent online machine, repeated process exits,
-or a failed `/health` request as fatal even if one of these warnings is also
-present.
-
-## Agent changed the site but did not commit
+### Agent changed the site but did not commit
 
 Inspect the isolated repository and loaded instructions:
 
@@ -235,7 +288,25 @@ interrupted turn, or a router timeout can therefore leave a deliberate dirty
 working tree for the next operator to inspect. It never pushes without an
 explicit request and a separately configured repository-scoped credential.
 
-## Coding agent asks you to log in again
+### Local commits work but GitHub push does not
+
+This is the secure default. The `demo_git` volume contains an isolated local
+repository with no remote and no credentials. Confirm that distinction:
+
+```bash
+docker compose exec demo git log --oneline --decorate -10
+docker compose exec demo git remote -v
+```
+
+An empty remote list does not mean automatic commits failed. Follow
+[Agent commits and GitHub](git-and-github.md#optional-github-publishing) only
+when the site needs publishing, and use a repository-scoped deploy key or
+GitHub App credential. Never mount a personal SSH directory or copy the parent
+repository's `.git` directory into the container.
+
+## The coding CLIs
+
+### Coding agent asks you to log in again
 
 A login persists in the host `./agents` directory, so losing it means the
 container is not reading the directory you expect. Confirm the redirect and the
@@ -264,7 +335,7 @@ Signing in to one service does not sign you in to a *different project* — the
 workspace and agent services share `./agents`, but a second clone of this
 repository has its own. `make agents-status` reports the current state.
 
-## Codex fails every command with a `bwrap` error
+### Codex fails every command with a `bwrap` error
 
 ```text
 bwrap: No permissions to create a new namespace, likely because the kernel
@@ -296,58 +367,9 @@ Do not answer this by loosening the container instead — `--privileged`,
 boundary in order to restore a nested one. Full-access-inside-the-container is
 the smaller change. See [coding agents](coding-agents.md#the-codex-sandbox).
 
-## Linux bind-mount permissions
+## The demo site
 
-Set `HOST_UID` and `HOST_GID` in `.env` to the output of `id -u` and `id -g`,
-then rebuild the image. This governs every bind mount, `./agents` included —
-the container has to create and write its login directories there.
-
-## Local commits work but GitHub push does not
-
-This is the secure default. The `demo_git` volume contains an isolated local
-repository with no remote and no credentials. Confirm that distinction:
-
-```bash
-docker compose exec demo git log --oneline --decorate -10
-docker compose exec demo git remote -v
-```
-
-An empty remote list does not mean automatic commits failed. Follow
-[Agent commits and GitHub](git-and-github.md#optional-github-publishing) only
-when the site needs publishing, and use a repository-scoped deploy key or
-GitHub App credential. Never mount a personal SSH directory or copy the parent
-repository's `.git` directory into the container.
-
-## Public relay does not connect
-
-Public mode requires a valid `CMDOP_API_KEY`, an organization-provisioned or
-available subdomain, DNS, and outbound TCP access to
-`proxy.cmdop.dev:4443`. The public edge uses HTTPS `443`; the origin container
-does not need an inbound `443` mapping.
-
-Check the requested topology and the non-secret generated fields:
-
-```bash
-docker compose exec demo sh -lc \
-  'sed -n -E "/^[[:space:]]*(mode|subdomain):/p" \
-  /home/cmdop/.config/cmdop/server.yaml'
-docker compose exec demo getent hosts proxy.cmdop.dev
-docker compose exec demo bash -lc \
-  'timeout 10 bash -c "</dev/tcp/proxy.cmdop.dev/4443"'
-```
-
-Explicit `CMDOP_RELAY_MODE=public` with an empty
-`CMDOP_PUBLIC_SUBDOMAIN` resolves the already-provisioned address for the
-organization that issued `CMDOP_API_KEY`. A key from another account cannot
-resolve or authorize that address. The free managed plan currently provides one
-address per organization; recreating Docker reuses it instead of allocating a
-new hostname.
-
-The managed address exposes the Cmdop console, not the Vite site on `8080`.
-Publishing the site is a separate reverse-proxy or hosting decision described
-in [Deployment](deployment.md#site-exposure-is-separate).
-
-## `Cannot read properties of null (reading 'useState')`
+### `Cannot read properties of null (reading 'useState')`
 
 Reads like a React bug in the demo application. It is a stale Vite cache.
 
