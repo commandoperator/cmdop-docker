@@ -129,6 +129,11 @@ docker compose build --no-cache demo
 docker compose up -d --force-recreate demo
 ```
 
+> **This setting is about Claude Code and Codex only.** It has no effect on
+> cmdop, which keeps auto-updating itself: its binary lives in the writable
+> `/opt/cmdop/bin` and its own switch is `CMDOP_NO_AUTO_UPDATE`. The name is
+> easy to read as a global kill switch — it is not.
+
 Compose already builds with `no_cache`, so a build resolves whatever version is
 current. Your login is in `./agents` and is unaffected.
 

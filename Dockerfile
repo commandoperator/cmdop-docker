@@ -18,6 +18,15 @@ ENV DEBIAN_FRONTEND=noninteractive \
     CMDOP_AGENTS_DIR=/home/cmdop/agents \
     CLAUDE_CONFIG_DIR=/home/cmdop/agents/claude \
     CODEX_HOME=/home/cmdop/agents/codex \
+    # CLAUDE CODE's variable, not cmdop's — it stops the npm-installed `claude`
+    # from trying to replace an executable in a root-owned image path. cmdop's
+    # own auto-update is unaffected and stays ON (its switch is
+    # CMDOP_NO_AUTO_UPDATE, and it updates /opt/cmdop/bin, which IS writable).
+    #
+    # Named here because the name does not say whose it is: while diagnosing a
+    # delayed cmdop update on 2026-08-10 this line read as the culprit and cost
+    # a detour before `grep DISABLE_AUTOUPDATER` over the Go tree came back
+    # empty.
     DISABLE_AUTOUPDATER=1
 
 # Chromium powers the agent's headless browser tools (CDP). The agent probes
