@@ -34,9 +34,12 @@ container you already have needs nothing from here — two lines in your own
 `Dockerfile`:
 
 ```dockerfile
-COPY --from=cmdop/cli:latest /cmdop /usr/local/bin/cmdop
+RUN curl -fsSL https://install.cmdop.com | sh -s -- --prefix=/usr/local/bin
 ENTRYPOINT ["cmdop", "sidecar", "--"]
 ```
+
+(A `COPY --from=cmdop/cli:latest` form replaces the `RUN` line once that image
+is published; it is not on Docker Hub yet.)
 
 `cmdop sidecar` starts the agent in the background and execs your command, so
 your process keeps PID 1. Enrolment reads `CMDOP_JOIN_KEY` (or

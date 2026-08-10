@@ -159,10 +159,24 @@ have**, you do not need it at all — add two lines to your own `Dockerfile`:
 
 ```dockerfile
 FROM your-image                                    # unchanged
-COPY --from=cmdop/cli:latest /cmdop /usr/local/bin/cmdop
+RUN curl -fsSL https://install.cmdop.com | sh -s -- --prefix=/usr/local/bin
 ENTRYPOINT ["cmdop", "sidecar", "--"]
 CMD ["your-app", "--your", "flags"]                # unchanged
 ```
+
+> **Requires a release newer than v1.1.137.** `cmdop sidecar` is in the code but
+> not yet in a published binary — an image built against v1.1.137 installs
+> correctly and then fails with `unknown command "sidecar"` (verified
+> 2026-08-10). Check with `cmdop --version` inside the image.
+>
+> **Also coming:** once the `cmdop/cli` image is published, the install line
+> becomes `COPY --from=cmdop/cli:latest /cmdop /usr/local/bin/cmdop`, which
+> needs no network fetch at build time. It is not on Docker Hub yet, so the
+> `RUN curl` form above is the one to use.
+>
+> On Alpine the `RUN` needs `curl` and `ca-certificates` first
+> (`apk add --no-cache curl ca-certificates`); Debian-family images usually
+> have both.
 
 Then pass the fleet's join key when you run it:
 
