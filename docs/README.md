@@ -9,7 +9,7 @@
 > failure modes on these pages:
 >
 > ```dockerfile
-> RUN curl -fsSL https://install.cmdop.com | sh -s -- --prefix=/usr/local/bin
+> COPY --from=markolofsen/cmdop:latest /cmdop /usr/local/bin/cmdop
 > ENTRYPOINT ["cmdop", "sidecar", "--"]
 > ```
 >

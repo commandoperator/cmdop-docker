@@ -1,11 +1,11 @@
-.PHONY: help commit claude codex claude-login codex-login agents-status
+.PHONY: help setup commit claude codex claude-login codex-login agents-status
 
-# Which Compose service the agent targets below run in. Override for the
-# fleet-agent profile:  make claude-login SERVICE=agent
+# Which Compose service the agent targets below run in.
 SERVICE ?= demo
 
 help:
 	@echo "Available commands:"
+	@echo "  make setup        - create .env and env/*.env from their examples"
 	@echo "  make commit       - stage, AI commit, and push to main"
 	@echo "  make claude       - start Claude Code with permissions bypassed"
 	@echo "  make codex        - start Codex with approvals and sandbox bypassed"
@@ -14,6 +14,18 @@ help:
 	@echo "  make claude-login  - sign in to Claude Code"
 	@echo "  make codex-login   - sign in to Codex"
 	@echo "  make agents-status - report both CLIs' version and sign-in state"
+
+# Copy every example into its live twin, skipping any that already exists — so
+# running it twice never overwrites an edited file. Settings are split by owner:
+# .env is per-machine (ports, credentials), env/*.env is per-concern.
+setup:
+	@for e in .env.example env/*.env.example; do \
+		live=$${e%.example}; \
+		if [ -f "$$live" ]; then echo "keep    $$live"; \
+		else cp "$$e" "$$live"; echo "created $$live"; fi; \
+	done
+	@echo ""
+	@echo "Now set CMDOP_ADMIN_PASSWORD (and CMDOP_API_KEY for public mode) in .env"
 
 commit:
 	@g=$$(git rev-parse --git-dir) || exit 1; \

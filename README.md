@@ -159,21 +159,25 @@ have**, you do not need it at all — add two lines to your own `Dockerfile`:
 
 ```dockerfile
 FROM your-image                                    # unchanged
-RUN curl -fsSL https://install.cmdop.com | sh -s -- --prefix=/usr/local/bin
+COPY --from=markolofsen/cmdop:latest /cmdop /usr/local/bin/cmdop
 ENTRYPOINT ["cmdop", "sidecar", "--"]
 CMD ["your-app", "--your", "flags"]                # unchanged
 ```
 
-> **Needs v1.1.138 or newer**, which is what `install.cmdop.com` serves — so a
-> build today just works (verified 2026-08-10). Older is the failure to know:
-> v1.1.137 installs correctly and then dies with `unknown command "sidecar"`,
-> because the command was committed before it was released. Pin an older
-> version and check `cmdop --version` inside the image.
+The image — **[hub.docker.com/r/markolofsen/cmdop](https://hub.docker.com/r/markolofsen/cmdop)**
+— is a *source of the binary*, not something you run: it carries no shell and
+adds only the file it copies. `linux/amd64` and `linux/arm64`, built from the
+published release binary and verified against its `SHA256SUMS`.
+
+> **Pin the version in production.** `:latest` in a `Dockerfile` pins nothing
+> and changes under you — use `markolofsen/cmdop:v1.1.141`.
 >
-> **Also coming:** once the `cmdop/cli` image is published, the install line
-> becomes `COPY --from=cmdop/cli:latest /cmdop /usr/local/bin/cmdop`, which
-> needs no network fetch at build time. It is not on Docker Hub yet, so the
-> `RUN curl` form above is the one to use.
+> **Prefer a build-time fetch?** The installer still works and needs no
+> registry: `RUN curl -fsSL https://install.cmdop.com | sh -s -- --prefix=/usr/local/bin`
+> (on Alpine, `apk add --no-cache curl ca-certificates` first). Either way it
+> needs **v1.1.138 or newer** — v1.1.137 installs fine and then dies with
+> `unknown command "sidecar"`, because the command was committed before it was
+> released.
 >
 > On Alpine the `RUN` needs `curl` and `ca-certificates` first
 > (`apk add --no-cache curl ca-certificates`); Debian-family images usually
