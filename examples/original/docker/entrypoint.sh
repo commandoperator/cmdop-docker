@@ -118,18 +118,28 @@ configure_relay() {
       fi
       # The current CLI owns the YAML schema. Keep the platform key out of the
       # file; cmdop server resolves CMDOP_ROUTER_API_KEY in memory at runtime.
+      #
+      # No --name on purpose. The CLI derives the relay's own name — an explicit
+      # --name, else the public label, else the hostname — so a relay published
+      # at <label>.cmdop.dev calls itself <label> and its messenger bot
+      # announces "CMDOP <label>". Passing CMDOP_MACHINE_NAME here (as this file
+      # did until 2026-08-11) took the ladder's TOP rung and pinned the relay to
+      # a name unrelated to its own address.
       cmdop server create \
         --mode public \
         "${subdomain_args[@]}" \
         --no-prompt \
-        "${force_args[@]}" \
-        --name "${CMDOP_MACHINE_NAME:-cmdop-live-demo}" >/dev/null
+        "${force_args[@]}" >/dev/null
     else
+      # LAN has no public label, so the relay's name falls through to the
+      # container hostname. Note that is os.Hostname(), NOT CMDOP_MACHINE_NAME —
+      # that variable names this box as a fleet MEMBER (its roster row), a
+      # different identity from the relay's own name. Set `hostname:` in compose
+      # to control this one.
       cmdop server create \
         --mode lan \
         --no-prompt \
-        "${force_args[@]}" \
-        --name "${CMDOP_MACHINE_NAME:-cmdop-live-demo}" >/dev/null
+        "${force_args[@]}" >/dev/null
     fi
   fi
 

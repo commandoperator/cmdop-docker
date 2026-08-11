@@ -18,7 +18,7 @@ uses secrets as Docker build arguments.
 | `CMDOP_ADMIN_PASSWORD` | Initial browser-console password | required |
 | `CMDOP_PERMISSIONS_MODE` | `default`, `strict`, or `bypass` | `default` |
 | `CMDOP_AGENT_CWD` | Mounted workspace used by machine-agent chats | `/workspace/demo` |
-| `CMDOP_MACHINE_NAME` | Relay machine name | `cmdop-live-demo` |
+| `CMDOP_MACHINE_NAME` | This box's name as a fleet **member** — the roster row you chat with. Not the relay's own name: that is derived from the public label (see below) | `cmdop-live-demo` |
 | `CMDOP_GIT_AUTHOR_NAME` | Author name for site commits | `Cmdop Agent` |
 | `CMDOP_GIT_AUTHOR_EMAIL` | Author email for site commits | `agent@cmdop.local` |
 | `HOST_BIND_ADDRESS` | Host interface for site and console | `127.0.0.1` |
@@ -32,6 +32,28 @@ uses secrets as Docker build arguments.
 | `VITE_USE_POLLING` | Reliable bind-mount watching | `true` |
 | `VITE_POLL_INTERVAL_MS` | Watch polling interval | `300` |
 | `VITE_HMR_CLIENT_PORT` | Optional public HMR WebSocket port | empty |
+
+## Two names, and they are not the same thing
+
+A container running the relay carries **two** identities. Confusing them is why
+a relay published at `demo.cmdop.dev` used to call itself something unrelated.
+
+| | What it names | Where it comes from |
+|---|---|---|
+| **Relay name** | the server itself — the CLI banner, and the messenger bot, which announces `CMDOP <relay name>` | derived: an explicit `cmdop server create --name`, else the public label (`CMDOP_PUBLIC_SUBDOMAIN`), else the container hostname |
+| **Member name** | this box's row in the fleet roster — the machine you open a chat with | `CMDOP_MACHINE_NAME` |
+
+The relay name is **derived, not configured**, and that is deliberate: the
+address is what other people already use to reach the machine, so it is the name
+they will recognise. Publish at `acme.cmdop.dev` and the bot in your Telegram
+introduces itself as `CMDOP acme`, with nothing to keep in sync by hand.
+
+Pass `--name` only if you genuinely want a name that differs from your address.
+It is the top of that ladder and it is the one value written into `server.yaml`,
+so it wins permanently — including over an address you set later.
+
+A container that only *joins* a fleet ([`examples/simple`](../examples/simple))
+has no relay of its own, so only the member name applies there.
 
 ## Adding Cmdop to your own container
 
