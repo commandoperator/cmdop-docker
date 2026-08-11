@@ -32,15 +32,19 @@ Hourly, forever, in the agent log — and nowhere else, because nothing crashes:
 
 ```json
 {"level":"warn","component":"update-scheduler","current":"1.1.143","new":"v1.1.148","message":"Update available"}
-{"level":"warn","component":"auto-update","version":"v1.1.148","staged":"/state/.cache/cmdop/updates/cmdop-v1.1.148","finish_with":"sudo cmdop update apply","message":"Auto-update: downloaded but not applied — installing into this path needs elevation"}
+{"level":"warn","component":"auto-update","version":"v1.1.148","refusal":"dir_not_writable","remedy":"Fix this in the image: give the running user ownership of the cmdop binary AND its directory, or turn auto-update off and ship updates by rebuilding the image.","message":"Auto-update: not downloading — this install cannot replace its own binary and nothing here can change that"}
 ```
 
-`cmdop version` stays where it was. Each attempt re-downloads ~100 MB, and the
-staged binaries sit in the cache under `HOME` — which is usually a volume, so it
-is your disk that grows.
+`cmdop version` stays where it was.
 
-The advice in the message — `sudo cmdop update apply` — assumes a workstation.
-Most containers have neither `sudo` nor anyone to run it.
+Older releases behaved worse here in two ways worth knowing if you are reading
+an old log. They advised `sudo cmdop update apply` — a workstation remedy, and
+most containers have neither `sudo` nor anyone to run it. And they downloaded
+the release before discovering they could not install it, so each hourly attempt
+re-fetched ~100 MB into the cache under `HOME` — usually a volume, so it was
+your disk that grew. Current releases name the cause, address the remedy to
+whoever can act on it, and skip the download entirely when nothing in the
+container could install the result.
 
 ### Confirming it in ten seconds
 
@@ -104,12 +108,19 @@ the real latest within a day. Turn auto-update off and the gap becomes your
 permanent version.
 
 Measured on 2026-08-11: `COPY --from=markolofsen/cmdop:latest` yielded 1.1.143
-while `install.cmdop.com` served 1.1.149 — six releases apart.
+while `install.cmdop.com` served 1.1.149 — six releases apart. Re-measured the
+next day: the tag still served 1.1.143 against a channel on 1.1.151, now eight
+apart, because that lane had not changed and correctly was not rebuilt. The gap
+is not a backlog that someone is behind on; it is what the tag means.
 
 | You want | Use |
 |---|---|
-| a cacheable layer, no build-time network, self-update on | `COPY --from=markolofsen/cmdop:latest /cmdop …` |
-| the current release baked in, pinned, reproducible | `RUN curl -fsSL https://install.cmdop.com \| sh -s -- --prefix=…` |
+| a cacheable layer and no build-time network — **only with self-update on**, since the container boots on the tag's version and needs to catch up | `COPY --from=markolofsen/cmdop:latest /cmdop …` |
+| the current release baked in, so the container is current from its first second | `RUN curl -fsSL https://install.cmdop.com \| sh -s -- --prefix=…` |
+
+The pairing that quietly hurts is `COPY --from` **plus** `CMDOP_NO_AUTO_UPDATE`:
+nothing then ever moves the version, and the tag's last rebuild becomes your
+permanent release. If you turn auto-update off, install from the channel.
 
 The installer costs you a ~100 MB fetch per cache miss and a build that fails
 when `install.cmdop.com` is unreachable. Put it in the **last** layer so nothing
@@ -137,6 +148,12 @@ even with auto-update off, and it lands in the container's writable layer, so
 the next `--force-recreate` silently reverts it. Move the image, not the
 container.
 
+It also leaves **no trace that distinguishes it from a self-update** — the
+versions drift apart exactly the same way. So resist the temptation to upgrade a
+container by hand "just this once": you have not moved the deployment, you have
+only made its version harder to explain. This has already misled the people who
+wrote this page.
+
 ### When to turn it off
 
 Turn it off when the image is your unit of deployment and something else already
@@ -150,20 +167,38 @@ current matters more than being reproducible.
 If you turn it off, read the section above first: a pinned image that lags the
 release channel is not the version you thought you pinned.
 
-### Root containers are not exempt
+## A container that CAN update drifts from its image
 
-A container running as root **can** replace its own binary, so it never logs a
-warning — it just drifts. On 2026-08-11 two production containers built from an
-image carrying 1.1.143 were found executing 1.1.148: they had updated
-themselves, and the next recreate would have reverted them with no message
-either way. Same behaviour as the failure at the top of this page, minus the
-symptom.
+The failure at the top of this page is loud: the update cannot install, and the
+log says so hourly. Its mirror image is quiet. When the update *succeeds* —
+because the directory is writable, which is what you get for free in a container
+running as root — the binary is now newer than the image that supposedly defines
+it. Nothing is broken; the version just stops being described by your image.
+
+Two consequences, and the second is the one that surprises people:
+
+- `docker inspect` and `docker run --entrypoint cmdop <image> --version` report
+  the image's version, and are no longer the answer to "what is running".
+- The next `--force-recreate`, redeploy or host reboot starts from the image
+  again, so **the version goes backwards** — silently, and then climbs back on
+  its own within a day.
 
 ```bash
-# what the image ships
+# what a recreate would give you
 docker run --rm --entrypoint cmdop <image> --version
-# what is actually executing
+# what is actually executing right now
 docker compose exec <svc> cmdop --version
 ```
 
-Those two agreeing is the property you are actually after.
+With auto-update on, those two are **allowed to differ, and the running one
+wins**. That is the design, not a fault. Requiring them to agree is only
+meaningful right after a rebuild — which is the point: a rebuild is how a
+version becomes durable here, not how it arrives.
+
+> **Do not diagnose this from the versions alone.** A container that is ahead of
+> its image has *either* self-updated *or* been updated by hand — a person
+> running `cmdop update` inside it leaves exactly the same evidence. On
+> 2026-08-12 three containers on one host were ahead of their images and only
+> one of them had done it by itself; the other two had `CMDOP_NO_AUTO_UPDATE=1`
+> set the whole time. The log settles it: look for `Update applied successfully`
+> (the scheduler) versus `Update scheduler skipped` (something else did it).

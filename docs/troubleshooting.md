@@ -19,8 +19,8 @@ grouped the same way — check the layer first, then the section.
 | `localhost:8080` does not load | Vite or its host port | `docker compose ps` and site logs |
 | Console loads but no machine is online | Cmdop agent enrollment | current container logs and machine ID |
 | Agent says it cannot find `src/` | workspace binding or stale CLI | `CMDOP_AGENT_CWD`, instructions, and CLI version |
-| Cmdop reports an older version than you installed | a self-update discarded with the container layer | `cmdop version`, then rebuild before recreating |
-| `Update ... downloaded but not applied` every hour | the binary's directory is not writable by the runtime user | [Agent updates](agent-updates.md) |
+| Cmdop reports an older version than you expect, especially right after a recreate | an in-place update lives in the container layer, so a recreate reverts to the image's build | `cmdop version` vs the image's; rebuild to make a version durable |
+| `Auto-update: ... cannot replace its own binary` every hour (older builds: `downloaded but not applied`) | the binary's directory is not writable by the runtime user | [Agent updates](agent-updates.md) |
 | `router.cmdop.com ... i/o timeout` | container egress, DNS, VPN, or router | router connectivity checks below |
 | Public `*.cmdop.dev` address fails | provisioning or outbound tunnel | public relay checks below |
 | Changes exist but no local commit appears | instructions or failed verification | isolated Git history and `AGENTS.md` |
