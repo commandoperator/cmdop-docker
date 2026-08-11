@@ -2,9 +2,7 @@
 
 **Coding agents edit, preview, and commit a real project.**
 
-[Live demo](https://demo.cmdop.com) | [Quick start](#quick-start) | [Documentation](https://docs.cmdop.com/docs/deployment/docker)
-
-![Claude Code and Codex connect through CMDOP in Docker to machine agents, a writable workspace, live preview and Git commits](../../assets/cmdop-docker-workflow.png)
+[Live demo](https://demo.cmdop.com) | [Run it](#run-it) | [Documentation](https://docs.cmdop.com/docs/deployment/docker)
 
 The full loop on your machine. One Compose service starts the Cmdop server, a
 scoped machine agent, an editable project, live browser preview, and persistent
@@ -19,22 +17,17 @@ Use Claude Code, Codex, or another coding agent to request a change. Watch the
 result appear in the browser, inspect the files, and keep the finished work as a
 normal Git commit.
 
+- **A real workspace.** The agent edits the same files you can inspect on the host.
+- **Immediate feedback.** Vite HMR updates the browser as the project changes.
+- **Bounded access.** The machine agent works inside the configured project directory.
+- **Durable history.** Finished changes survive container recreation.
+- **Agents included.** Claude Code and Codex ship in the image, ready to sign in.
+
 **See it running first:** [demo.cmdop.com](https://demo.cmdop.com) is this
 repository deployed as-is — the page you land on is the demo project below,
 edited by an agent through the same loop you are about to run locally.
 
-## What you get
-
-- **A real workspace.** The agent edits the same files you can inspect on the host.
-- **Immediate feedback.** Vite HMR updates the browser as the project changes.
-- **Bounded access.** The machine agent works inside the configured project directory.
-- **Durable history.** Finished changes remain in local Git across container recreation.
-- **Agents included.** Claude Code and Codex are installed and ready to sign in.
-
-The repository provides the Docker setup and editable demo. The CMDOP binary is
-installed from the official distribution when the image is built.
-
-## Quick start
+## Run it
 
 You need Docker Engine with Compose v2 and a [CMDOP API key](https://my.cmdop.com).
 
@@ -68,6 +61,30 @@ Select the connected machine in the console and try:
 Change the hero accent to cobalt blue and rewrite the headline for a robotics
 studio. Keep it responsive.
 ```
+
+## How it works
+
+Three supervised processes form one feedback loop:
+
+| Process | Responsibility |
+|---|---|
+| CMDOP server | Browser console, authenticated sessions, and relay |
+| CMDOP machine agent | Agent access scoped to `/workspace/demo` |
+| Vite | Immediate preview of the same writable files |
+
+The host `./demo` directory is mounted at `/workspace/demo`. CMDOP state, Git
+history, and `node_modules` use named volumes. Recreating the container keeps
+that working state — but it does replace everything the image owns, the CMDOP
+binary included, which is why a version moves forward on a rebuild and can move
+backward on a bare recreate ([updating](#updating)).
+
+The relay listener stays container-local by default. The site and console bind
+to `127.0.0.1`, and the machine agent connects outbound. The working directory
+is set explicitly with `CMDOP_AGENT_CWD`.
+
+To adapt the stack for another project or public deployment, start with
+[configuration and persistence](docs/configuration.md) and
+[deployment and firewall guidance](docs/deployment.md).
 
 ## Ask from somewhere other than the console
 
@@ -123,30 +140,6 @@ Nothing of yours is at risk either way — the console password, machine identit
 and your `./agents` logins live in volumes or on the host, not in the layer that
 is replaced. The same applies to the coding agents, whose own auto-updaters are
 deliberately off; see [coding agents](docs/coding-agents.md#updates).
-
-## Inside the stack
-
-Three supervised processes form one feedback loop:
-
-| Process | Responsibility |
-|---|---|
-| CMDOP server | Browser console, authenticated sessions, and relay |
-| CMDOP machine agent | Agent access scoped to `/workspace/demo` |
-| Vite | Immediate preview of the same writable files |
-
-The host `./demo` directory is mounted at `/workspace/demo`. CMDOP state, Git
-history, and `node_modules` use named volumes. Recreating the container keeps
-that working state — but it does replace everything the image owns, the CMDOP
-binary included, which is why a version moves forward on a rebuild and can move
-backward on a bare recreate ([updating](#updating)).
-
-The relay listener stays container-local by default. The site and console bind
-to `127.0.0.1`, and the machine agent connects outbound. The working directory
-is set explicitly with `CMDOP_AGENT_CWD`.
-
-To adapt the stack for another project or public deployment, start with
-[configuration and persistence](docs/configuration.md) and
-[deployment and firewall guidance](docs/deployment.md).
 
 ## Add Cmdop to your own container
 

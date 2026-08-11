@@ -12,6 +12,8 @@
 
 </div>
 
+![Claude Code and Codex connect through Cmdop in Docker to machine agents, a writable workspace, live preview and Git commits](assets/cmdop-docker-workflow.png)
+
 Two lines put a Cmdop agent beside your own application. Your process keeps
 PID 1; Cmdop rides along.
 
@@ -74,7 +76,7 @@ because it fetches nothing at build time and its layer is cacheable.
 
 Set `CMDOP_MACHINE_NAME`, and give the agent a volume at `HOME` — the two
 settings that are not optional, and why, are in
-[`examples/simple`](examples/simple#the-two-settings-that-are-not-optional).
+[`examples/simple`](examples/simple#settings-that-are-not-optional).
 
 One rule about that volume belongs here, because it is a property of the image:
 **it is for state, never for executables.** A binary installed into a volume is

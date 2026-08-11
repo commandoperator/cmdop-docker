@@ -7,6 +7,19 @@
 
 examples/demo/config/*
 !examples/demo/config/.gitkeep
+
+# ── Leftovers from the pre-examples/ layout ─────────────────────────────────
+# Anchoring the rules above to examples/demo/ left these uncovered. Git leaves
+# IGNORED files where they are, so every checkout that predates the move still
+# has them at the root — the prod stand did, holding config/agent_keypair.bin
+# (the machine's identity) and agents/ (live Claude and Codex logins). `make
+# commit` runs `git add .`, which put both one command from a public
+# repository. Found 2026-08-11; keep these until every checkout is known clean.
+/config/
+/agents/
+/workspace/
+/demo/node_modules/
+/demo/dist/
 examples/demo/demo/node_modules/
 examples/demo/demo/dist/
 examples/demo/workspace/*

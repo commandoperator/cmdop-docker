@@ -14,16 +14,50 @@ agent does not care what it rides along with.
 ## Run it
 
 ```bash
-cp .env.example .env      # fill in CMDOP_SERVER_URL + CMDOP_JOIN_KEY
+cp .env.example .env      # fill it in, see below
 docker compose up --build
 ```
 
 Your app serves on <http://localhost:3000>; the machine appears in your fleet
 with terminal, file access and AI chat.
 
-## What `sidecar` actually does
+### Where is the relay?
 
-It starts the agent in the background, then **`exec`s** your command. That word
+`CMDOP_SERVER_URL` points at a **relay** — the thing your machines join and you
+connect through. This example is a *member*: it dials out, it never listens.
+Something else has to be the relay, and you have three ways to get one:
+
+| The relay is… | `CMDOP_SERVER_URL` | When |
+|---|---|---|
+| **your own machine** | `http://host.docker.internal:63141` | trying this out — run `cmdop server` on your laptop, the container dials back to it |
+| **a machine you host** | `https://<your-host>:63141` | you already run Cmdop on a server |
+| **the managed tier** | `https://<your-team>.cmdop.dev` | you want an address without hosting one; the relay registers it for you |
+
+In every case the relay is where `cmdop server join-key` prints the key you put
+in `CMDOP_JOIN_KEY` — the two settings always come from the same place.
+
+> **Hosting a relay is a different job from joining one**, which is why this
+> example does not do it: a relay listens, holds `server.db`, owns the console
+> password, and — on the managed tier — registers a public address. The one in
+> this repository that does host a relay is [`../demo`](../demo).
+
+### Two credentials, and they are not the same thing
+
+This is the part that trips people up: **joining the fleet and paying for
+inference are separate.**
+
+| Credential | What it does | Where to get it |
+|---|---|---|
+| `CMDOP_JOIN_KEY` | lets this machine **join** the fleet | `cmdop server join-key` on the relay host |
+| `CMDOP_ROUTER_API_KEY` | pays for **inference** — the AI part | <https://my.cmdop.com> |
+
+With the join key alone the machine connects and the terminal and file access
+work fine; AI chat just has nothing to think with. With neither, `sidecar` is a
+plain `exec` and your app runs as if Cmdop were not there.
+
+## How it works
+
+`sidecar` starts the agent in the background, then **`exec`s** your command. That word
 is the whole design — your process becomes PID 1:
 
 - `docker stop` delivers SIGTERM to **your** app (`app.js` prints it), and your
@@ -39,7 +73,7 @@ Three consequences worth knowing:
   `exec`. The same image runs unchanged where it was never enrolled.
 - **Your flags stay yours.** Everything after `--` passes through untouched.
 
-## The two settings that are not optional
+## Settings that are not optional
 
 | Setting | Why |
 |---|---|

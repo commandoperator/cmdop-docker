@@ -16,6 +16,13 @@ services:
       CMDOP_SERVER_URL: ${CMDOP_SERVER_URL}
       CMDOP_JOIN_KEY: ${CMDOP_JOIN_KEY}
 
+      # The platform key — a SEPARATE credential from the join key above, and
+      # the one people miss. The join key gets the machine into the fleet;
+      # this pays for inference, so without it the machine connects and the
+      # terminal and file access work, but AI chat has nothing to think with.
+      # Get it at https://my.cmdop.com.
+      CMDOP_ROUTER_API_KEY: ${CMDOP_ROUTER_API_KEY:-}
+
       # Set this. Without it the machine is named after the container hostname,
       # which Docker regenerates on every recreate — so the fleet fills up with
       # hex-named strangers instead of one machine you recognise.
