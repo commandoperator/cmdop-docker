@@ -65,7 +65,22 @@ published release binary, verified against its `SHA256SUMS`.
 **You do not pin, and you do not chase releases.** `:latest` is the only tag,
 and that is deliberate — the agent keeps itself current at runtime, checking
 daily and applying updates in place, so a container built months ago runs
-today's version without a rebuild.
+today's version without a rebuild. That is how an operations agent should
+behave, and it is the same bargain Tailscale, the Datadog agent and
+`cloudflared` make: your application image stays fixed, the management agent
+does not.
+
+**If your deployment must be immutable, that default is switchable** — two
+knobs, both read by the binary:
+
+| | |
+|---|---|
+| `CMDOP_NO_AUTO_UPDATE=1` | no background checks, ever. The version is whatever the image shipped. |
+| `CMDOP_PIN_VERSION=v1.2.3` | the updater resolves to exactly that version and refuses anything else. Also a rollback switch: pin a known-good release without reinstalling. |
+
+Build the binary in too, and nothing moves at runtime:
+`docker build --build-arg CMDOP_VERSION=v1.2.3 .` against the image's own
+Dockerfile.
 
 **Prefer a build-time fetch, with no registry involved?** The installer works
 too:
