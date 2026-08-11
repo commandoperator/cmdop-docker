@@ -20,6 +20,7 @@ grouped the same way — check the layer first, then the section.
 | Console loads but no machine is online | Cmdop agent enrollment | current container logs and machine ID |
 | Agent says it cannot find `src/` | workspace binding or stale CLI | `CMDOP_AGENT_CWD`, instructions, and CLI version |
 | Cmdop reports an older version than you installed | a self-update discarded with the container layer | `cmdop version`, then rebuild before recreating |
+| `Update ... downloaded but not applied` every hour | the binary's directory is not writable by the runtime user | [Agent updates](agent-updates.md) |
 | `router.cmdop.com ... i/o timeout` | container egress, DNS, VPN, or router | router connectivity checks below |
 | Public `*.cmdop.dev` address fails | provisioning or outbound tunnel | public relay checks below |
 | Changes exist but no local commit appears | instructions or failed verification | isolated Git history and `AGENTS.md` |

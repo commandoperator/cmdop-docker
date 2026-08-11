@@ -16,12 +16,16 @@ come here when you need to understand or change one part.
 Pages tagged **original** below describe that stand, and most of what they document
 (Vite, `/workspace/demo`, `docker compose exec demo`) exists only there. If you
 came to put Cmdop in a container you already own, you need almost none of it —
-[`examples/simple`](../examples/simple) and the two pages tagged **both**.
+[`examples/simple`](../examples/simple) and the three pages tagged **both**.
+Read [Agent updates](agent-updates.md) before you ship an image with a `USER`
+line: the two-line form is written for an image that stays root, and in one that
+does not, the agent runs fine and silently stops updating.
 
 | Page | Applies to | Use it for |
 |---|---|---|
 | [Configuration](configuration.md) | **both** | Environment variables, volumes, resets, permissions |
 | [Coding agents](coding-agents.md) | **both** | Claude Code and Codex: signing in, where the login lives, sandboxing |
+| [Agent updates](agent-updates.md) | **both** | How the in-place update works, why a `USER` line breaks it, pinning a version |
 | [Architecture](architecture.md) | original | Processes, ports, workspace binding, image layout |
 | [Deployment](deployment.md) | original | Public relay mode, firewall rules, site exposure |
 | [Git and GitHub](git-and-github.md) | original | Automatic local commits and optional publishing |

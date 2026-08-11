@@ -83,6 +83,13 @@ behave, and it is the same bargain Tailscale, the Datadog agent and
 `cloudflared` make: your application image stays fixed, the management agent
 does not.
 
+Two things that default depends on, both easy to get wrong and neither loud
+about it — **the binary's directory must be writable by the image's runtime
+user** (a `USER` line plus the `COPY` below is the common trap), and **this
+tag is not the latest release** (the image is republished when its own lane
+changes, not per release). Both, with the fix and the ten-second check:
+[docs/agent-updates.md](docs/agent-updates.md).
+
 **If your deployment must be immutable, that default is switchable** — two
 knobs, both read by the binary:
 
