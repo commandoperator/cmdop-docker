@@ -6,15 +6,21 @@ already have. No API key is involved and none belongs in this repository.
 
 | CLI | Command | Executable | State directory |
 |---|---|---|---|
-| Claude Code | `claude` | `/usr/local/bin/claude` | `/home/cmdop/agents/claude` |
-| Codex | `codex` | `/usr/local/bin/codex` | `/home/cmdop/agents/codex` |
+| Claude Code | `claude` | `/opt/cmdop/agents/bin/claude` | `/home/cmdop/agents/claude` |
+| Codex | `codex` | `/opt/cmdop/agents/bin/codex` | `/home/cmdop/agents/codex` |
 
-Both are installed from npm rather than from each vendor's own installer. The
-official installers are hard-wired to `$HOME`, which here is a Docker volume —
-a binary installed there is seeded once, at first container creation, and then
-outlives every later image build. That is the same stale-executable trap this
-image already unwound for Cmdop itself. Under `/usr/local` the executables
-belong to the image and a rebuild replaces them.
+**They are installed at first boot, not baked into the image.** That keeps
+~770 MB out of it — measured — and costs about 7 seconds on the first start,
+once: a restart finds them already there and skips.
+
+They land in `/opt/cmdop/agents`, owned by the runtime user, and deliberately
+**not** under `/home/cmdop`, which is a volume. A binary installed into a volume
+is seeded once and then outlives every image rebuild — the stale-executable trap
+this image already unwound for Cmdop itself.
+
+If the install fails (no network, npm hiccup) the container still starts: the
+stand is a relay, an agent and a live site, and two optional CLIs must not stop
+any of it. The entrypoint says what failed and how to retry.
 
 ## Sign in
 
@@ -119,36 +125,79 @@ have the container regenerate it.
 
 ## Updates
 
-Both CLIs auto-update themselves by default. That is disabled here
-(`DISABLE_AUTOUPDATER=1`), because the executables live in a root-owned image
-path the runtime user cannot write — leaving it on produces a permanent
-"can't auto-update" warning and no updates. Rebuild instead:
+Each start installs `@latest`, so a container recreate is the update:
 
 ```bash
-docker compose build --no-cache demo
 docker compose up -d --force-recreate demo
 ```
+
+No rebuild needed — the CLIs are not in the image any more. `DISABLE_AUTOUPDATER=1`
+is still set, so neither CLI tries to update itself mid-session; the boot install
+is the one place a version changes, which keeps "what am I running" answerable.
 
 > **This setting is about Claude Code and Codex only.** It has no effect on
 > cmdop, which keeps auto-updating itself: its binary lives in the writable
 > `/opt/cmdop/bin` and its own switch is `CMDOP_NO_AUTO_UPDATE`. The name is
 > easy to read as a global kill switch — it is not.
 
-Compose sets `pull: true`, but the npm install layer itself is cached, so
-`@latest` freezes at whatever it resolved to when that layer was first built.
-Use `--no-cache` when you specifically want to move these two CLIs forward:
-
-```bash
-docker compose build --no-cache demo
-```
-
-That is the trade for a rebuild that takes a second rather than minutes; before
-2026-08-11 the whole service was built with `no_cache`, which kept these current
-at the cost of reinstalling Cmdop on every single build. Your login is in `./agents` and is unaffected.
+Your login is in `./agents` and a recreate does not touch it.
 
 Cmdop itself updates on the same principle but with one extra trap: it CAN
 update in place, and a container recreate then throws that update away. See
 [updating](../README.md#updating).
+
+## Why they are installed this way
+
+Four decisions in the Dockerfile that look arbitrary until they are not. Each
+was paid for once; none is safe to "simplify" back.
+
+### npm, not the vendors' own installers
+
+Both official installers are hard-wired to `$HOME` — `claude.ai/install.sh`
+writes `~/.local/bin` and `~/.local/share/claude` with no prefix option — and
+`$HOME` here is the persistent `cmdop_state` volume.
+
+A binary installed into a volume is seeded **once**, at first container
+creation, and then survives every later image build. That is the stale-executable
+trap this image already had to unwind for Cmdop itself, which is why the
+entrypoint still carries `remove_legacy_home_binary`.
+
+Installing under `/opt/cmdop/agents` gives the split that actually works: the
+executables live with the container and a recreate replaces them; the
+credentials live on the host and it does not.
+
+### `@latest`, resolved at boot
+
+The npm packages are thin — each pulls a per-platform native binary through an
+optional dependency, so nothing runs on Node at runtime — and both are unpinned.
+
+Because the install happens at start rather than at build, `@latest` means what
+it says: every fresh container gets the current release. There is no cached
+layer to freeze it and no `--no-cache` rebuild to remember.
+
+This replaced two worse options. Baking them with `no_cache: true` kept them
+current but reinstalled *everything* on every build; baking them with the cache
+on froze them at whatever the layer first resolved.
+
+### `CLAUDE_CONFIG_DIR` / `CODEX_HOME`
+
+The other half of the executables-vs-credentials split. Left alone, each CLI
+scatters state across `HOME` — Claude Code writes `~/.claude` **and** a sibling
+`~/.claude.json` — and none of it would be separable from the rest of the home
+volume.
+
+Both accept a redirect, so the layout is ours to choose: one directory per
+agent, both under `CMDOP_AGENTS_DIR`, which Compose bind-mounts from `./agents`
+as a single path. A login then lives on the host, outlives every image rebuild,
+and a fourth agent tomorrow is one more subdirectory rather than one more mount.
+
+### The install must stay after `usermod`
+
+Not a caching concern. The `ENV` block sets `HOME=/home/cmdop` for every layer,
+so npm running as root would create its cache there — and
+`usermod --move-home` refuses to move onto a directory that already exists,
+failing the build with a bare `exit 12`. `HOME=/root` on that `RUN` keeps the
+cache out of the runtime user's home either way.
 
 ## Leaving one out
 

@@ -60,59 +60,21 @@ RUN groupmod --new-name cmdop --gid "${HOST_GID}" node \
     && chown -R cmdop:cmdop /workspace /home/cmdop /opt/cmdop \
     && ln -s /opt/cmdop/bin/cmdop /usr/local/bin/cmdop
 
-# Claude Code and Codex, installed image-side so the container has a coding
-# agent the moment it boots.
+# Claude Code and Codex are installed at FIRST BOOT, not baked in — ~586 MB the
+# image does not carry for two CLIs a stand may never open, and they are current
+# on every start instead of frozen at build time.
 #
-# npm rather than each vendor's own installer, and this is the load-bearing
-# decision in the file. Both official installers are hard-wired to $HOME
-# (`claude.ai/install.sh` writes ~/.local/bin and ~/.local/share/claude with no
-# prefix option), and $HOME here is the persistent `cmdop_state` volume. A
-# binary installed into a volume is seeded once, at first container creation,
-# and then survives every later image build — the exact stale-executable trap
-# this image already had to unwind for Cmdop itself, which is why the
-# entrypoint still carries `remove_legacy_home_binary`. Installing under
-# /usr/local gives the split we actually want: the executables belong to the
-# image and are replaced by a rebuild, the credentials belong to the host and
-# are not.
-#
-# The npm packages are thin: each pulls a per-platform native binary through an
-# optional dependency, so nothing here runs on Node at runtime.
-#
-# They are unpinned (`@latest`), and that used to be resolved on every build
-# because Compose ran with `no_cache: true`. It no longer does — cmdop now
-# arrives as a cacheable COPY — so THIS layer caches too, and `@latest` freezes
-# at whatever it resolved to when the layer was first built.
-#
-# That is the honest trade for a fast rebuild, and the escape is explicit rather
-# than implicit:
-#
-#   docker compose build --no-cache demo    # refresh Claude Code / Codex
-#
-# The alternative — keeping no_cache for everyone so two third-party CLIs stay
-# current — made every rebuild reinstall cmdop as well.
-#
-# The other half of that split is CLAUDE_CONFIG_DIR / CODEX_HOME above. Left
-# alone, each CLI scatters state across HOME — Claude Code writes ~/.claude
-# AND a sibling ~/.claude.json — and none of it would be separable from the
-# rest of the home volume. Both accept a redirect, so the layout is ours to
-# pick: one directory per agent, both under CMDOP_AGENTS_DIR, which Compose
-# bind-mounts from ./agents as a single path. A login then lives on the host,
-# outlives every image rebuild, and a fourth agent tomorrow is one more
-# subdirectory rather than one more mount.
-#
-# Order matters, and not for caching: this must stay AFTER the usermod above.
-# The ENV block sets HOME=/home/cmdop for every layer, so npm running as root
-# would create its cache there — and `usermod --move-home` refuses to move onto
-# a directory that already exists, failing the build with a bare `exit 12`.
-# HOME=/root keeps the cache out of the runtime user's home either way.
-RUN HOME=/root sh -c ' \
-        if [ "${CMDOP_CLAUDE_CODE}" = "1" ]; then \
-            npm install -g --no-fund --no-audit @anthropic-ai/claude-code@latest; \
-        fi \
-        && if [ "${CMDOP_CODEX}" = "1" ]; then \
-            npm install -g --no-fund --no-audit @openai/codex@latest; \
-        fi \
-        && npm cache clean --force'
+# Where they land is load-bearing: /opt/cmdop/agents, owned by the runtime user
+# and NOT under /home/cmdop, which is a volume — a binary installed into a
+# volume is seeded once and then outlives every image rebuild. The rest
+# (npm vs the vendors' installers, the CLAUDE_CONFIG_DIR/CODEX_HOME redirect) is
+# in docs/coding-agents.md § "Why the image installs them this way".
+# Nothing is installed here — see the entrypoint. The image only reserves the
+# directory they land in, owned by the runtime user so a non-root start can
+# write it, and NOT under /home/cmdop, which is a volume.
+RUN mkdir -p /opt/cmdop/agents/bin && chown -R cmdop:cmdop /opt/cmdop/agents
+ENV PATH=/opt/cmdop/agents/bin:${PATH} \
+    NPM_CONFIG_PREFIX=/opt/cmdop/agents
 
 WORKDIR /workspace/demo
 
@@ -130,18 +92,9 @@ RUN cmdop server --help | grep -q -- '--cwd' \
     && cmdop server --help | grep -q -- '--initial-admin-password-file' \
     && cmdop server --help | grep -q -- '--no-banner'
 
-# Same contract check for the coding agents, and deliberately run as cmdop
-# rather than root: a global npm install that landed with the wrong ownership
-# still executes for root and fails for the runtime user, which would otherwise
-# only surface as a "command not found" long after the image shipped.
-RUN if [ "${CMDOP_CLAUDE_CODE}" = "1" ]; then \
-        claude --version \
-        && claude auth --help | grep -q 'login'; \
-    fi \
-    && if [ "${CMDOP_CODEX}" = "1" ]; then \
-        codex --version \
-        && codex login --help | grep -q -- '--device-auth'; \
-    fi
+# The coding agents have no build-time contract check any more: they are not
+# installed here. install_coding_agents in the entrypoint verifies each one
+# after it lands, which is the only place that can now be true.
 
 COPY --chown=cmdop:cmdop demo/package.json demo/package-lock.json ./
 RUN npm ci --ignore-scripts \

@@ -4,14 +4,9 @@ services:
   demo:
     build:
       context: .
-      # `pull: true` refreshes the base images — including markolofsen/cmdop,
-      # which the Dockerfile copies the binary from, so a rebuild still picks up
-      # the current release.
-      #
-      # `no_cache: true` used to sit here because cmdop was installed by a
-      # network fetch that the cache would otherwise freeze. The binary now
-      # arrives as a COPY from a pinned-by-digest image, so the layer is
-      # legitimately cacheable and rebuilds stopped costing a full reinstall.
+      # Refreshes the images the build copies from, including the one carrying
+      # the cmdop binary — so a rebuild picks up the current release without
+      # `no_cache`. See docs/architecture.md.
       pull: true
       args:
         HOST_UID: ${HOST_UID:-1000}
@@ -25,27 +20,23 @@ services:
     # default of 64 MB crashes it on heavy pages.
     shm_size: "1gb"
     restart: unless-stopped
-    # One file per owner — see env/*.env.example for what each one covers.
-    # `make setup` copies them; a missing file is skipped rather than fatal.
-    env_file:
-      - path: env/cmdop.env
-        required: false
-      - path: env/demo.env
-        required: false
-      - path: env/agents.env
-        required: false
+    # Every setting comes from .env, grouped by owner inside that one file.
     environment:
-      # ONLY computed values belong here, and the reason is load-bearing:
-      # `environment:` ALWAYS overrides `env_file:`, whatever the order. A key
-      # listed in both places would make the file above look editable while
-      # silently having no effect — worse than not splitting at all.
-      #
-      # Each of these is derived rather than chosen: a rename, a reference to
-      # another setting, or a fixed container path.
       CMDOP_ROUTER_API_KEY: ${CMDOP_API_KEY:-}
+      CMDOP_CODEX_SANDBOX: ${CMDOP_CODEX_SANDBOX:-auto}
+      CMDOP_PERMISSIONS_MODE: ${CMDOP_PERMISSIONS_MODE:-default}
+      CMDOP_MACHINE_NAME: ${CMDOP_MACHINE_NAME:-cmdop-live-demo}
+      CMDOP_AGENT_CWD: ${CMDOP_AGENT_CWD:-/workspace/demo}
+      CMDOP_RELAY_MODE: ${CMDOP_RELAY_MODE:-auto}
+      CMDOP_PUBLIC_SUBDOMAIN: ${CMDOP_PUBLIC_SUBDOMAIN:-}
+      VITE_USE_POLLING: ${VITE_USE_POLLING:-true}
+      VITE_POLL_INTERVAL_MS: ${VITE_POLL_INTERVAL_MS:-300}
+      VITE_HMR_CLIENT_PORT: ${VITE_HMR_CLIENT_PORT:-}
       VITE_CMDOP_CONSOLE_PORT: ${CMDOP_HOST_PORT:-63141}
       GIT_DIR: /workspace/.git
       GIT_WORK_TREE: /workspace/demo
+      CMDOP_GIT_AUTHOR_NAME: ${CMDOP_GIT_AUTHOR_NAME:-Cmdop Agent}
+      CMDOP_GIT_AUTHOR_EMAIL: ${CMDOP_GIT_AUTHOR_EMAIL:-agent@cmdop.local}
     secrets:
       - cmdop_admin_password
     ports:
@@ -67,23 +58,8 @@ services:
       - demo_node_modules:/workspace/demo/node_modules
     stop_grace_period: 20s
 
-# Joining an existing fleet is no longer a service in this file.
-#
-# It used to be a second `agent:` profile here — a near-duplicate of the demo
-# service that rebuilt the same 2 GB image (Chromium, two coding CLIs, a Vite
-# demo) to run one binary. Adding cmdop to a container is now two lines in YOUR
-# OWN Dockerfile, with no repository to clone and no .env to fill in:
-#
-#   COPY --from=cmdop/cli:latest /cmdop /usr/local/bin/cmdop
-#   ENTRYPOINT ["cmdop", "sidecar", "--"]
-#   CMD ["your-app"]
-#
-# `cmdop sidecar` starts the agent in the background and then execs your
-# command, so YOUR process keeps PID 1 and Docker's signals, exit codes and
-# restart policy are unchanged. Enrolment reads CMDOP_JOIN_KEY and
-# CMDOP_SERVER_URL from the environment.
-#
-# This repository is the live DEMO stand, and now only that.
+# One service: this repository is the live demo stand. Adding cmdop to a
+# container you already own needs nothing from here — see the README.
 
 volumes:
   cmdop_state:

@@ -15,15 +15,10 @@ help:
 	@echo "  make codex-login   - sign in to Codex"
 	@echo "  make agents-status - report both CLIs' version and sign-in state"
 
-# Copy every example into its live twin, skipping any that already exists — so
-# running it twice never overwrites an edited file. Settings are split by owner:
-# .env is per-machine (ports, credentials), env/*.env is per-concern.
+# Create .env from the example, never overwriting one that already exists.
 setup:
-	@for e in .env.example env/*.env.example; do \
-		live=$${e%.example}; \
-		if [ -f "$$live" ]; then echo "keep    $$live"; \
-		else cp "$$e" "$$live"; echo "created $$live"; fi; \
-	done
+	@if [ -f .env ]; then echo "keep    .env (already there)"; \
+	else cp .env.example .env; echo "created .env"; fi
 	@echo ""
 	@echo "Now set CMDOP_ADMIN_PASSWORD (and CMDOP_API_KEY for public mode) in .env"
 

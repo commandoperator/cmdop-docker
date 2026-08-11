@@ -44,6 +44,17 @@ that image, so a build still resolves the current published CLI — and because
 the layer is now a plain `COPY`, a rebuild that changes nothing else takes
 about a second instead of minutes:
 
+Until 2026-08-11 this service also set `no_cache: true`. It had to: Cmdop was
+installed by a `curl | sh` whose command string never changes, so a cached layer
+would pin one release indefinitely while every build still reported success.
+The cost was that *everything* rebuilt — Chromium, both coding CLIs, the lot —
+on every single build. Copying from a published image removes the reason and
+keeps the freshness, because `pull` re-resolves the tag.
+
+Claude Code and Codex are not in the image at all — they install at first boot,
+so caching cannot freeze them either. See
+[coding agents](coding-agents.md#latest-resolved-at-boot).
+
 ```bash
 docker compose build
 docker compose up -d

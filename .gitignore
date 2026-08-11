@@ -1,6 +1,4 @@
 .env
-# Live per-owner settings; only the *.env.example twins are committed.
-env/*.env
 config/*
 !config/.gitkeep
 demo/node_modules/

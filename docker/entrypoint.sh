@@ -69,21 +69,6 @@ ensure_git_repository() {
   fi
 }
 
-clear_stale_runtime() {
-  # cmdop agent (v1.1.110) exits with ENOENT when the runtime directory is
-  # absent, and a freshly created home volume ships without it.
-  mkdir -p "${HOME}/.cmdop/run"
-  # PID namespaces are recreated with the container, while /home/cmdop is a
-  # persistent volume. Never let a recycled PID make Cmdop mistake a status
-  # record from the previous container for a live relay or agent.
-  rm -f \
-    "${HOME}/.cmdop/daemon.status" \
-    "${HOME}/.cmdop/run/agent.pid" \
-    "${HOME}/.cmdop/run/agent.pid.lock" \
-    "${HOME}/.cmdop/run/server.status" \
-    "${HOME}/.cmdop/run/server.status.lock"
-}
-
 configure_relay() {
   local desired_mode
   local current_mode=""
@@ -197,6 +182,44 @@ resolve_codex_sandbox() {
   fi
 }
 
+install_coding_agents() {
+  # Claude Code and Codex are installed HERE, not in the image: ~586 MB the
+  # image does not carry, and a version resolved at boot rather than frozen at
+  # build time.
+  #
+  # NEVER FATAL. The stand is a relay, an agent and a live site; two optional
+  # coding CLIs failing to install must not stop any of that. Each failure is
+  # named and the boot continues.
+  #
+  # Skipped entirely when already present, so a restart costs nothing.
+  local pkgs=""
+  [ "${CMDOP_CLAUDE_CODE:-1}" = "1" ] && ! command -v claude >/dev/null 2>&1 \
+    && pkgs="${pkgs} @anthropic-ai/claude-code@latest"
+  [ "${CMDOP_CODEX:-1}" = "1" ] && ! command -v codex >/dev/null 2>&1 \
+    && pkgs="${pkgs} @openai/codex@latest"
+
+  [ -z "${pkgs}" ] && return 0
+
+  log "Installing coding agents (${pkgs# })…"
+  if npm install -g --no-fund --no-audit --loglevel=error ${pkgs} 2>&1 | tail -3; then
+    # The contract check the image used to do at build time. It ran as the
+    # runtime user on purpose: a global install that landed with the wrong
+    # ownership still executes for root and fails for cmdop, which would
+    # otherwise surface as "command not found" much later.
+    if [ "${CMDOP_CLAUDE_CODE:-1}" = "1" ] && ! claude --version >/dev/null 2>&1; then
+      log "Claude Code installed but does not run — check ownership under /opt/cmdop/agents."
+    fi
+    if [ "${CMDOP_CODEX:-1}" = "1" ] && ! codex --version >/dev/null 2>&1; then
+      log "Codex installed but does not run — check ownership under /opt/cmdop/agents."
+    fi
+    log "Coding agents ready."
+  else
+    log "Coding agents did not install — continuing without them."
+    log "Retry later with: docker compose exec demo npm install -g${pkgs}"
+  fi
+  npm cache clean --force >/dev/null 2>&1 || true
+}
+
 configure_coding_agents() {
   # CLAUDE_CONFIG_DIR and CODEX_HOME point both CLIs into ./agents, which
   # Compose bind-mounts from the host — so a login survives image rebuilds and
@@ -258,8 +281,8 @@ configure_permissions() {
 }
 
 remove_legacy_home_binary
-clear_stale_runtime
 configure_permissions
+install_coding_agents
 configure_coding_agents
 
 cd "${DEMO_DIR}"
