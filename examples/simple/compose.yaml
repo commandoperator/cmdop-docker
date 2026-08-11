@@ -1,0 +1,36 @@
+# Run the example:
+#
+#   cp .env.example .env     # then fill in CMDOP_SERVER_URL + CMDOP_JOIN_KEY
+#   docker compose up --build
+#
+# The machine appears in your fleet while your app serves on :3000.
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # Which relay to join, and the credential to join it with. Get the key on
+      # the relay host: `cmdop server join-key`.
+      CMDOP_SERVER_URL: ${CMDOP_SERVER_URL}
+      CMDOP_JOIN_KEY: ${CMDOP_JOIN_KEY}
+
+      # Set this. Without it the machine is named after the container hostname,
+      # which Docker regenerates on every recreate — so the fleet fills up with
+      # hex-named strangers instead of one machine you recognise.
+      CMDOP_MACHINE_NAME: simple-example
+
+      # The agent keeps its identity, credential and state under HOME, so HOME
+      # must point at the volume below — otherwise every recreate honestly looks
+      # like a brand-new machine to the relay.
+      #
+      # Put nothing executable in that volume: a binary seeded into one survives
+      # later image builds and silently keeps running the old version.
+      HOME: /state
+
+    volumes:
+      - cmdop-state:/state
+
+volumes:
+  cmdop-state:

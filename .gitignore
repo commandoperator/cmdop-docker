@@ -1,12 +1,19 @@
+# Paths are anchored to examples/demo/ since the demo moved there. A bare
+# `agents/*` would silently stop matching and commit live credentials, so these
+# are deliberately explicit rather than loose patterns.
 .env
-config/*
-!config/.gitkeep
-demo/node_modules/
-demo/dist/
 *.log
 .DS_Store
-workspace/*
-!workspace/.gitkeep
+
+examples/demo/config/*
+!examples/demo/config/.gitkeep
+examples/demo/demo/node_modules/
+examples/demo/demo/dist/
+examples/demo/workspace/*
+!examples/demo/workspace/.gitkeep
+
 # Live Claude Code and Codex logins. Everything here is credential material.
-agents/*
-!agents/.gitkeep
+examples/demo/agents/*
+!examples/demo/agents/.gitkeep
+
+examples/simple/node_modules/
