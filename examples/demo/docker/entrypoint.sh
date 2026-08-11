@@ -268,20 +268,8 @@ EOF
   fi
 }
 
-configure_permissions() {
-  case "${CMDOP_PERMISSIONS_MODE:-default}" in
-    default|strict|bypass)
-      cmdop permissions mode "${CMDOP_PERMISSIONS_MODE:-default}" >/dev/null
-      ;;
-    *)
-      log "CMDOP_PERMISSIONS_MODE must be default, strict, or bypass."
-      return 1
-      ;;
-  esac
-}
 
 remove_legacy_home_binary
-configure_permissions
 install_coding_agents
 configure_coding_agents
 

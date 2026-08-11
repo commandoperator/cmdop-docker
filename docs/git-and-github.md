@@ -1,5 +1,9 @@
 # Agent commits and GitHub
 
+> **Applies to [`examples/demo`](../examples/demo)** — the stand that hosts its
+> own relay and drives a project. An agent riding along beside your own app
+> ([`examples/simple`](../examples/simple)) has none of these moving parts.
+
 The demo needs no Git setup. On first startup, the entrypoint creates an
 isolated repository for `/workspace/demo`, records a baseline snapshot, and
 stores the metadata in the `demo_git` volume. The parent `cmdop-docker`

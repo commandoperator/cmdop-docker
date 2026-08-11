@@ -1,5 +1,7 @@
 # Claude Code and Codex
 
+> **Applies to both examples.** Where a setting is demo-only, it says so.
+
 The image ships both CLIs, so a container has a coding agent the moment it
 boots. You sign in once, from inside the container, with the subscription you
 already have. No API key is involved and none belongs in this repository.
@@ -144,7 +146,7 @@ Your login is in `./agents` and a recreate does not touch it.
 
 Cmdop itself updates on the same principle but with one extra trap: it CAN
 update in place, and a container recreate then throws that update away. See
-[updating](../README.md#updating).
+[updating](../examples/demo/README.md#updating).
 
 ## Why they are installed this way
 

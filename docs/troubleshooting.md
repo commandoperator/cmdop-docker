@@ -7,7 +7,7 @@ parts a stand has and a plain agent does not.
 If you added Cmdop to a container you already own (`cmdop sidecar`, two lines in
 your own `Dockerfile`), you have none of these parts and will meet none of these
 symptoms. The one page you want is
-[the root README](../README.md#add-cmdop-to-your-own-container).
+[`examples/simple`](../examples/simple).
 
 The symptom map's middle column names the layer, and the sections below are
 grouped the same way — check the layer first, then the section.

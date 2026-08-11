@@ -1,5 +1,7 @@
 # Configuration and persistence
 
+> **Applies to both examples.** Where a setting is demo-only, it says so.
+
 `.env.example` is the public configuration reference. Copy it to `.env`; that
 file is ignored by Git. Compose passes runtime settings to the image and never
 uses secrets as Docker build arguments.
@@ -46,7 +48,7 @@ does the same job without a registry, if you prefer a build-time fetch.
 your process keeps PID 1. Enrolment reads `CMDOP_JOIN_KEY` (or
 `CMDOP_JOIN_KEY_FILE` for a mounted secret) and `CMDOP_SERVER_URL` from that
 container's environment; name it with `CMDOP_MACHINE_NAME`. See the
-[README](../README.md#add-cmdop-to-your-own-container).
+[`examples/simple`](../examples/simple).
 
 ## Storage boundaries
 

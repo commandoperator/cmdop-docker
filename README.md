@@ -92,4 +92,4 @@ and even `scratch` are all fine.
 Published documentation lives at
 **[docs.cmdop.com/docs/deployment/docker](https://docs.cmdop.com/docs/deployment/docker)**.
 Operator-level detail for the demo stand is in
-[`examples/demo/docs`](examples/demo/docs).
+[`docs/`](docs).

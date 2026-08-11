@@ -83,8 +83,8 @@ to `127.0.0.1`, and the machine agent connects outbound. The working directory
 is set explicitly with `CMDOP_AGENT_CWD`.
 
 To adapt the stack for another project or public deployment, start with
-[configuration and persistence](docs/configuration.md) and
-[deployment and firewall guidance](docs/deployment.md).
+[configuration and persistence](../../docs/configuration.md) and
+[deployment and firewall guidance](../../docs/deployment.md).
 
 ## Ask from somewhere other than the console
 
@@ -112,7 +112,7 @@ Each opens its own device-code flow: approve in your browser, paste the code
 back. The token is written to the git-ignored `./agents` directory on the host,
 which is mounted into the container — so a login survives image rebuilds and
 volume resets. Details, including how Codex's sandbox is resolved inside a
-container, are in [coding agents](docs/coding-agents.md).
+container, are in [coding agents](../../docs/coding-agents.md).
 
 ## Updating
 
@@ -139,7 +139,7 @@ Cmdop binary — so a build resolves the current release.
 Nothing of yours is at risk either way — the console password, machine identity
 and your `./agents` logins live in volumes or on the host, not in the layer that
 is replaced. The same applies to the coding agents, whose own auto-updaters are
-deliberately off; see [coding agents](docs/coding-agents.md#updates).
+deliberately off; see [coding agents](../../docs/coding-agents.md#updates).
 
 ## Add Cmdop to your own container
 
@@ -152,12 +152,12 @@ Published documentation for this stack lives at
 **[docs.cmdop.com/docs/deployment/docker](https://docs.cmdop.com/docs/deployment/docker)**.
 The pages in this repository are the operator-level detail behind it:
 
-- [Architecture and process supervision](docs/architecture.md)
-- [Configuration and persistence](docs/configuration.md)
-- [Claude Code and Codex: login, storage, sandboxing](docs/coding-agents.md)
-- [Agent commits and optional GitHub publishing](docs/git-and-github.md)
-- [Public deployment, ports, and firewall](docs/deployment.md)
-- [Troubleshooting and safe support bundle](docs/troubleshooting.md)
+- [Architecture and process supervision](../../docs/architecture.md)
+- [Configuration and persistence](../../docs/configuration.md)
+- [Claude Code and Codex: login, storage, sandboxing](../../docs/coding-agents.md)
+- [Agent commits and optional GitHub publishing](../../docs/git-and-github.md)
+- [Public deployment, ports, and firewall](../../docs/deployment.md)
+- [Troubleshooting and safe support bundle](../../docs/troubleshooting.md)
 
 For programmatic Python and Node integrations, see
 [`commandoperator/cmdop-sdk`](https://github.com/commandoperator/cmdop-sdk).
