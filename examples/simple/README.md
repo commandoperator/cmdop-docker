@@ -39,7 +39,7 @@ in `CMDOP_JOIN_KEY` — the two settings always come from the same place.
 > **Hosting a relay is a different job from joining one**, which is why this
 > example does not do it: a relay listens, holds `server.db`, owns the console
 > password, and — on the managed tier — registers a public address. The one in
-> this repository that does host a relay is [`../demo`](../demo).
+> this repository that does host a relay is [`../original`](../original).
 
 ### Two credentials, and they are not the same thing
 
@@ -93,4 +93,4 @@ work. This example uses `node:24-slim` only because the sample app is Node.
 ---
 
 Want to see the agent editing a live project instead of riding along with one?
-That is [`../demo`](../demo).
+That is [`../original`](../original).

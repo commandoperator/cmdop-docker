@@ -146,7 +146,7 @@ Your login is in `./agents` and a recreate does not touch it.
 
 Cmdop itself updates on the same principle but with one extra trap: it CAN
 update in place, and a container recreate then throws that update away. See
-[updating](../examples/demo/README.md#updating).
+[updating](../examples/original/README.md#updating).
 
 ## Why they are installed this way
 

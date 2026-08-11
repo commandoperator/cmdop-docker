@@ -37,16 +37,6 @@ ensure_node_modules() {
   fi
 }
 
-remove_legacy_home_binary() {
-  # Images before v1.1.110 installed cmdop under the persistent HOME volume.
-  # That file can outlive an image rebuild and win in login-shell PATH order.
-  # The image-owned binary now lives under /opt with /usr/local/bin as its
-  # stable command path, so remove only the obsolete executable during upgrade.
-  if [[ -e "${HOME}/.local/bin/cmdop" ]]; then
-    rm -f "${HOME}/.local/bin/cmdop"
-    log "Removed legacy Cmdop binary from the persistent home volume."
-  fi
-}
 
 ensure_git_repository() {
   if [[ -z "${GIT_DIR:-}" || -z "${GIT_WORK_TREE:-}" ]]; then
@@ -269,7 +259,6 @@ EOF
 }
 
 
-remove_legacy_home_binary
 install_coding_agents
 configure_coding_agents
 

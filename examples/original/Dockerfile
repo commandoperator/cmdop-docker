@@ -1,10 +1,6 @@
-# The cmdop binary comes from its own published image rather than an installer
-# run at build time. Same bytes, no network fetch inside the build, and — the
-# reason that matters here — the layer becomes CACHEABLE, which is what lets
-# compose.yaml drop `no_cache: true`.
-ARG CMDOP_IMAGE=markolofsen/cmdop:latest
-FROM ${CMDOP_IMAGE} AS cmdopbin
-
+# NO registry: the cmdop binary is fetched by the official installer during the
+# build (see the RUN below). The registry-based form — two lines, cacheable — is
+# ../simple.
 FROM node:24-bookworm
 
 ARG HOST_UID=1000
@@ -80,10 +76,19 @@ WORKDIR /workspace/demo
 
 USER cmdop
 
-# The binary, copied from the published image. Architecture selection is
-# buildx's job here (the image is a multi-arch manifest), and the checksum was
-# verified when that image was built — see cmdop_go/release/docker.
-COPY --from=cmdopbin --chown=cmdop:cmdop /cmdop /opt/cmdop/bin/cmdop
+# The binary, fetched by the official installer at build time — NO registry
+# involved. That independence is what this example is for: everything here is
+# reachable with curl and a shell, so it works behind a proxy, on an air-gapped
+# mirror, or anywhere pulling from Docker Hub is not an option.
+#
+# The elegant path is the opposite one, and it is ../simple: two lines,
+# `COPY --from=markolofsen/cmdop:latest`, no fetch inside the build and a
+# cacheable layer. Use this form when you cannot, or will not, depend on a
+# registry.
+#
+# The installer picks the architecture itself and verifies the download against
+# the release SHA256SUMS.
+RUN curl -fsSL https://install.cmdop.com | sh -s -- --prefix=/opt/cmdop/bin
 
 # Fail at build time when the selected distribution predates the container
 # runtime contract this image relies on. This is clearer than boot-looping on an

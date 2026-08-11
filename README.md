@@ -42,8 +42,12 @@ execution — from a browser, the CLI, or your phone.
 
 | | What it shows |
 |---|---|
-| **[`examples/simple`](examples/simple)** | The two lines, on an ordinary app. ~15 lines of Dockerfile, nothing else. **Start here.** |
-| **[`examples/demo`](examples/demo)** | The full loop: a coding agent editing a live project, Vite preview, Git history. This is what runs at [demo.cmdop.com](https://demo.cmdop.com). |
+| **[`examples/simple`](examples/simple)** | The two lines above, on an ordinary app. ~15 lines of Dockerfile, nothing else. **Start here.** |
+| **[`examples/original`](examples/original)** | Everything by hand and **without a registry** — the binary comes from `curl install.cmdop.com`, the container hosts its own relay, and an entrypoint script supervises three processes. The full loop: a coding agent editing a live project, Vite preview, Git history. This is what runs at [demo.cmdop.com](https://demo.cmdop.com). |
+
+The two are opposite ends on purpose. `simple` is what the Docker Hub image
+exists for: pull a binary, add two lines, done. `original` is the answer to
+"what if I cannot use a registry" — and it shows what that costs.
 
 `sidecar` starts the agent in the background, then **`exec`s your command** —
 your process keeps PID 1, so `docker stop`, exit codes and `restart:` policies

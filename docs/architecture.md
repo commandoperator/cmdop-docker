@@ -1,6 +1,6 @@
 # Architecture
 
-> **Applies to [`examples/demo`](../examples/demo)** — the stand that hosts its
+> **Applies to [`examples/original`](../examples/original)** — the stand that hosts its
 > own relay and drives a project. An agent riding along beside your own app
 > ([`examples/simple`](../examples/simple)) has none of these moving parts.
 

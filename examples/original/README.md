@@ -1,4 +1,4 @@
-# demo — a live workspace for coding agents
+# original — everything by hand, without a registry
 
 **Coding agents edit, preview, and commit a real project.**
 
@@ -8,10 +8,19 @@ The full loop on your machine. One Compose service starts the Cmdop server, a
 scoped machine agent, an editable project, live browser preview, and persistent
 Git history.
 
-> This example is the **opposite end** from [`../simple`](../simple). There the
-> agent rides along beside an app you already have; here it hosts its own relay
-> and drives a project. If you came to put Cmdop in your own container, start
-> there.
+> **This is the opposite end from [`../simple`](../simple), in two ways.**
+>
+> *Where the binary comes from:* here it is fetched at build time with
+> `curl https://install.cmdop.com` — **no registry involved**, which is the
+> point. `simple` copies it out of the published Docker Hub image in two lines,
+> fetches nothing during the build, and gets a cacheable layer. Use this form
+> when you cannot, or will not, depend on a registry.
+>
+> *What the container does:* there the agent rides along beside an app you
+> already own. Here it **hosts its own relay** and drives a project — three
+> supervised processes and an entrypoint script to match.
+>
+> If you came to put Cmdop in your own container, start with `../simple`.
 
 Use Claude Code, Codex, or another coding agent to request a change. Watch the
 result appear in the browser, inspect the files, and keep the finished work as a
@@ -33,7 +42,7 @@ You need Docker Engine with Compose v2 and a [CMDOP API key](https://my.cmdop.co
 
 ```bash
 git clone https://github.com/commandoperator/cmdop-docker.git
-cd cmdop-docker/examples/demo
+cd cmdop-docker/examples/original
 cp .env.example .env
 ```
 

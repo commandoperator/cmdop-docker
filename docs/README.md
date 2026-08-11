@@ -6,13 +6,14 @@ come here when you need to understand or change one part.
 
 **Which example a page belongs to matters**, because the two are opposite ends:
 
-| | [`examples/simple`](../examples/simple) | [`examples/demo`](../examples/demo) |
+| | [`examples/simple`](../examples/simple) | [`examples/original`](../examples/original) |
 |---|---|---|
 | the agent | rides along beside your app | drives a project |
 | the relay | somewhere else — you join it | **hosted by this container** |
 | in the image | the `cmdop` binary, nothing more | Node, Vite, Chromium, two coding CLIs |
+| the binary | `COPY --from` the Docker Hub image | `curl install.cmdop.com` — **no registry** |
 
-Pages tagged **demo** below describe the stand, and most of what they document
+Pages tagged **original** below describe that stand, and most of what they document
 (Vite, `/workspace/demo`, `docker compose exec demo`) exists only there. If you
 came to put Cmdop in a container you already own, you need almost none of it —
 [`examples/simple`](../examples/simple) and the two pages tagged **both**.
@@ -21,10 +22,10 @@ came to put Cmdop in a container you already own, you need almost none of it —
 |---|---|---|
 | [Configuration](configuration.md) | **both** | Environment variables, volumes, resets, permissions |
 | [Coding agents](coding-agents.md) | **both** | Claude Code and Codex: signing in, where the login lives, sandboxing |
-| [Architecture](architecture.md) | demo | Processes, ports, workspace binding, image layout |
-| [Deployment](deployment.md) | demo | Public relay mode, firewall rules, site exposure |
-| [Git and GitHub](git-and-github.md) | demo | Automatic local commits and optional publishing |
-| [Troubleshooting](troubleshooting.md) | demo | Copy-paste diagnostics and known failure modes |
+| [Architecture](architecture.md) | original | Processes, ports, workspace binding, image layout |
+| [Deployment](deployment.md) | original | Public relay mode, firewall rules, site exposure |
+| [Git and GitHub](git-and-github.md) | original | Automatic local commits and optional publishing |
+| [Troubleshooting](troubleshooting.md) | original | Copy-paste diagnostics and known failure modes |
 
 ## Safe support bundle
 
