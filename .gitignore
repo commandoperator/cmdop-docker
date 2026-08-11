@@ -1,15 +1,15 @@
-# Paths are anchored to examples/demo/ since the demo moved there. A bare
+# Paths are anchored to examples/original/ since the demo moved there. A bare
 # `agents/*` would silently stop matching and commit live credentials, so these
 # are deliberately explicit rather than loose patterns.
 .env
 *.log
 .DS_Store
 
-examples/demo/config/*
-!examples/demo/config/.gitkeep
+examples/original/config/*
+!examples/original/config/.gitkeep
 
 # ── Leftovers from the pre-examples/ layout ─────────────────────────────────
-# Anchoring the rules above to examples/demo/ left these uncovered. Git leaves
+# Anchoring the rules above to examples/original/ left these uncovered. Git leaves
 # IGNORED files where they are, so every checkout that predates the move still
 # has them at the root — the prod stand did, holding config/agent_keypair.bin
 # (the machine's identity) and agents/ (live Claude and Codex logins). `make
@@ -20,13 +20,13 @@ examples/demo/config/*
 /workspace/
 /demo/node_modules/
 /demo/dist/
-examples/demo/demo/node_modules/
-examples/demo/demo/dist/
-examples/demo/workspace/*
-!examples/demo/workspace/.gitkeep
+examples/original/demo/node_modules/
+examples/original/demo/dist/
+examples/original/workspace/*
+!examples/original/workspace/.gitkeep
 
 # Live Claude Code and Codex logins. Everything here is credential material.
-examples/demo/agents/*
-!examples/demo/agents/.gitkeep
+examples/original/agents/*
+!examples/original/agents/.gitkeep
 
 examples/simple/node_modules/
