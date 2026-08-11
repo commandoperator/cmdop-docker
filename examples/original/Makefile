@@ -5,11 +5,11 @@ SERVICE ?= demo
 
 help:
 	@echo "Available commands:"
-	@echo "  make setup        - create .env and env/*.env from their examples"
+	@echo "  make setup        - create .env from .env.example"
 	@echo "  make claude       - start Claude Code with permissions bypassed"
 	@echo "  make codex        - start Codex with approvals and sandbox bypassed"
 	@echo ""
-	@echo "Inside the container (override the service with SERVICE=agent):"
+	@echo "Inside the container:"
 	@echo "  make claude-login  - sign in to Claude Code"
 	@echo "  make codex-login   - sign in to Codex"
 	@echo "  make agents-status - report both CLIs' version and sign-in state"

@@ -1,10 +1,14 @@
 # Claude Code and Codex
 
-> **Applies to both examples.** Where a setting is demo-only, it says so.
+> **Applies to [`examples/original`](../examples/original)** — the stand that
+> installs these two CLIs and drives a project with them. An agent riding along
+> beside your own app ([`examples/simple`](../examples/simple)) has neither:
+> that image adds one file and carries no shell.
 
-The image ships both CLIs, so a container has a coding agent the moment it
-boots. You sign in once, from inside the container, with the subscription you
-already have. No API key is involved and none belongs in this repository.
+This stand installs both CLIs on first boot, so a container has a coding agent
+shortly after it starts. You sign in once, from inside the container, with the
+subscription you already have. No API key is involved and none belongs in this
+repository.
 
 | CLI | Command | Executable | State directory |
 |---|---|---|---|
@@ -50,13 +54,6 @@ logs one line:
 [cmdop-demo] Claude Code is installed and not signed in yet — run: make claude-login
 ```
 
-The agent-mode service uses the same targets with the service named:
-
-```bash
-make codex-login SERVICE=agent
-```
-
-Both services mount the same host directory, so signing in once covers both.
 
 ## Where the login lives
 
@@ -161,8 +158,7 @@ writes `~/.local/bin` and `~/.local/share/claude` with no prefix option — and
 
 A binary installed into a volume is seeded **once**, at first container
 creation, and then survives every later image build. That is the stale-executable
-trap this image already had to unwind for Cmdop itself, which is why the
-entrypoint still carries `remove_legacy_home_binary`.
+trap this image already had to unwind for Cmdop itself.
 
 Installing under `/opt/cmdop/agents` gives the split that actually works: the
 executables live with the container and a recreate replaces them; the

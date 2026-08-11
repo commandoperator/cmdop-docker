@@ -4,6 +4,8 @@
 
 [Live demo](https://demo.cmdop.com) | [Run it](#run-it) | [Documentation](https://docs.cmdop.com/docs/deployment/docker)
 
+![Claude Code and Codex connect through this stand's own Cmdop server and relay to machine agents, a writable workspace, live preview and Git commits](../../assets/cmdop-docker-workflow.png)
+
 The full loop on your machine. One Compose service starts the Cmdop server, a
 scoped machine agent, an editable project, live browser preview, and persistent
 Git history.

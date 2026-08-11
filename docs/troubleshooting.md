@@ -330,9 +330,8 @@ If the container cannot write there, the entrypoint says so and exits:
 
 That is the ownership problem below, applied to `./agents`.
 
-Signing in to one service does not sign you in to a *different project* — the
-workspace and agent services share `./agents`, but a second clone of this
-repository has its own. `make agents-status` reports the current state.
+Signing in does not sign you in for a *different project* — a second clone of
+this repository has its own `./agents`. `make agents-status` reports the current state.
 
 ### Codex fails every command with a `bwrap` error
 

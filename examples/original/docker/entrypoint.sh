@@ -173,7 +173,7 @@ resolve_codex_sandbox() {
 }
 
 install_coding_agents() {
-  # Claude Code and Codex are installed HERE, not in the image: ~586 MB the
+  # Claude Code and Codex are installed HERE, not in the image: ~770 MB the
   # image does not carry, and a version resolved at boot rather than frozen at
   # build time.
   #

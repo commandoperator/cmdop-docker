@@ -12,7 +12,7 @@
 
 </div>
 
-![Claude Code and Codex connect through Cmdop in Docker to machine agents, a writable workspace, live preview and Git commits](assets/cmdop-docker-workflow.png)
+![Inside a container: the cmdop sidecar entrypoint execs your application, which stays PID 1 and receives Docker's SIGTERM directly, while the Cmdop agent runs in the background and dials out to a relay elsewhere](assets/cmdop-sidecar-pid1.png)
 
 Two lines put a Cmdop agent beside your own application. Your process keeps
 PID 1; Cmdop rides along.
@@ -37,6 +37,19 @@ docker run -d \
 
 The machine appears in your fleet: terminal, file access, AI chat, remote
 execution — from a browser, the CLI, or your phone.
+
+## One binary, and nothing beside it
+
+What you copied in is the whole control plane. The machine agent, the relay
+other machines join, and the browser console are the same executable, so
+there is **no database server, no Redis, no message broker, no backend service
+and no web app to deploy alongside it**. Nothing to provision before the two
+lines work, and nothing to upgrade separately afterwards.
+
+State is real — the agent keeps its identity, credentials and history under
+`HOME`, which is why that volume matters — but there is no server to run for
+it. And the binary links no libc, so the base image is your choice: Alpine,
+Debian, distroless, even `scratch`.
 
 ## Examples
 

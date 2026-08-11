@@ -1,16 +1,16 @@
 .PHONY: help commit
 
 # Repository-level targets. The commit flow belongs here because it stages and
-# pushes the WHOLE repository — running it from examples/demo staged the same
+# pushes the WHOLE repository — running it from an example directory staged the same
 # tree while implying it was demo-scoped. Per-example targets live in each
-# example's own Makefile (examples/demo/Makefile).
+# example's own Makefile (examples/original/Makefile).
 
 help:
 	@echo "Available commands:"
 	@echo "  make commit       - stage, AI commit, and push to main"
 	@echo ""
 	@echo "Per-example targets:"
-	@echo "  make -C examples/demo help"
+	@echo "  make -C examples/original help"
 
 commit:
 	@g=$$(git rev-parse --git-dir) || exit 1; \

@@ -1,6 +1,10 @@
 # Configuration and persistence
 
-> **Applies to both examples.** Where a setting is demo-only, it says so.
+> **Mostly [`examples/original`](../examples/original).** The variable table
+> below belongs to the demo stand. Adding Cmdop to a container you already own
+> ([`examples/simple`](../examples/simple)) needs four settings, and they are
+> documented there: `CMDOP_SERVER_URL`, `CMDOP_JOIN_KEY`,
+> `CMDOP_ROUTER_API_KEY` and `CMDOP_MACHINE_NAME`.
 
 `.env.example` is the public configuration reference. Copy it to `.env`; that
 file is ignored by Git. Compose passes runtime settings to the image and never
@@ -55,7 +59,7 @@ container's environment; name it with `CMDOP_MACHINE_NAME`. See the
 - `./demo` is the host-visible editable site.
 - `./config` contains the generated Cmdop configuration.
 - `./agents` holds the Claude Code and Codex logins — **credential material**,
-  git-ignored, shared by both services. See [coding agents](coding-agents.md).
+  git-ignored. See [coding agents](coding-agents.md).
 - `cmdop_state` persists the relay database, identity, and logs.
 - `demo_git` persists the site's isolated Git history.
 - `demo_node_modules` keeps Linux dependencies out of the host tree.

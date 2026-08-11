@@ -41,12 +41,14 @@ release is CGO-free, so gRPC, SQLite, and TLS need no extra shared libraries.
 The base provides CA certificates, DNS userspace, Bash, coreutils, curl, Git,
 OpenSSH, and procps. Cmdop carries its own pinned file-search runtime.
 
-The Dockerfile copies the Cmdop binary from its published image
-([markolofsen/cmdop](https://hub.docker.com/r/markolofsen/cmdop)) rather than
-running an installer at build time. Compose sets `pull: true`, which refreshes
-that image, so a build still resolves the current published CLI — and because
-the layer is now a plain `COPY`, a rebuild that changes nothing else takes
-about a second instead of minutes:
+This stand deliberately takes the **no-registry** path: the Dockerfile fetches
+the Cmdop binary with the official installer at build time
+(`curl -fsSL https://install.cmdop.com | sh -s -- --prefix=/opt/cmdop/bin`),
+which picks the architecture itself and verifies the download against the
+release `SHA256SUMS`. That is the whole point of this example — the elegant
+form is the opposite one, a cacheable
+`COPY --from=markolofsen/cmdop:latest` in [`../simple`](../examples/simple).
+Use the installer only when you cannot, or will not, depend on a registry:
 
 Until 2026-08-11 this service also set `no_cache: true`. It had to: Cmdop was
 installed by a `curl | sh` whose command string never changes, so a cached layer
@@ -73,9 +75,12 @@ bytes do not.
 
 ## Coding agents
 
-The image also carries the Claude Code and Codex CLIs, installed from npm into
-`/usr/local/bin` — same principle as Cmdop's own binary, and the reason npm is
-used rather than either vendor's installer: both installers write into `$HOME`,
+The Claude Code and Codex CLIs are **not** in the image: the entrypoint
+installs them from npm on first boot, under `/opt/cmdop/agents`, which keeps
+~770 MB out of the image and resolves the version at boot rather than freezing
+it at build time. The install is never fatal — two optional coding CLIs must
+not stop a relay, an agent and a live site from coming up. npm is used rather
+than either vendor's installer because both installers write into `$HOME`,
 which here is a volume that would outlive the image. Their state goes the other
 way, redirected by `CLAUDE_CONFIG_DIR` and `CODEX_HOME` into `/home/cmdop/agents`,
 a bind mount from the host `./agents`. Executables belong to the image and a

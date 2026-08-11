@@ -56,7 +56,7 @@ RUN groupmod --new-name cmdop --gid "${HOST_GID}" node \
     && chown -R cmdop:cmdop /workspace /home/cmdop /opt/cmdop \
     && ln -s /opt/cmdop/bin/cmdop /usr/local/bin/cmdop
 
-# Claude Code and Codex are installed at FIRST BOOT, not baked in — ~586 MB the
+# Claude Code and Codex are installed at FIRST BOOT, not baked in — ~770 MB the
 # image does not carry for two CLIs a stand may never open, and they are current
 # on every start instead of frozen at build time.
 #
