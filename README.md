@@ -8,6 +8,8 @@
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-markolofsen%2Fcmdop-2496ed?logo=docker&logoColor=white)](https://hub.docker.com/r/markolofsen/cmdop)
 [![Cmdop](https://img.shields.io/badge/Cmdop-cmdop.com-111827)](https://cmdop.com/products/docker)
 
+[![SPONSORED BY E2B FOR STARTUPS](https://img.shields.io/badge/SPONSORED%20BY-E2B%20FOR%20STARTUPS-ff8800?style=for-the-badge)](https://e2b.dev/startups)
+
 [Live demo](https://demo.cmdop.com) | [Documentation](https://docs.cmdop.com/docs/deployment/docker) | [cmdop.com](https://cmdop.com)
 
 </div>
