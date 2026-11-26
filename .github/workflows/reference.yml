@@ -1,5 +1,11 @@
 name: Docker reference
 on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the tested report application to GHCR
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths: ['reference/**', '.github/workflows/reference.yml']
@@ -60,3 +66,77 @@ jobs:
         run: docker run --rm -i --network none --cap-drop ALL --entrypoint python cmdop-report-app:local - < tests/read-via-sdk.py
       - name: Reuse a saved machine configuration without interactive account sign-in
         run: docker run --rm -i --network none --cap-drop ALL --entrypoint python cmdop-report-app:local - < tests/reconnect.py
+      - name: Save tested image for registry verification
+        run: |
+          docker save cmdop-report-app:local | gzip -1 > "$RUNNER_TEMP/image.tar.gz"
+          jq -er '.signed.version' "$RUNNER_TEMP/cmdop-stable.json" > "$RUNNER_TEMP/version"
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: image-${{ matrix.arch }}
+          path: |
+            ${{ runner.temp }}/image.tar.gz
+            ${{ runner.temp }}/version
+          retention-days: 1
+
+  registry:
+    needs: report
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    concurrency: report-app-registry
+    services:
+      registry:
+        image: registry:2
+        ports: ['5000:5000']
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: image-*
+          path: images
+      - name: Verify and assemble the multi-platform image
+        env:
+          PUBLISH: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish }}
+          GH_TOKEN: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish && github.token || '' }}
+        run: |
+          set -euo pipefail
+          repo=localhost:5000/cmdop-report-app
+          if [[ "$PUBLISH" == true ]]; then
+            repo=ghcr.io/commandoperator/cmdop-report-app
+            printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          fi
+          cmp images/image-{amd64,arm64}/version
+          run_tag="run-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          parts=()
+          for arch in amd64 arm64; do
+            docker load -i "images/image-$arch/image.tar.gz"
+            image_id=$(docker image inspect --format '{{.Id}}' cmdop-report-app:local)
+            tag="$repo:$run_tag-$arch"
+            docker tag "$image_id" "$tag"
+            docker push "$tag"
+            parts+=("$tag")
+            echo "$image_id" > "$arch.id"
+          done
+          # The CLI manifest commands need explicit HTTP for the test registry.
+          flags=()
+          if [[ "$PUBLISH" != true ]]; then flags+=(--insecure); fi
+          candidate="$repo:$run_tag"
+          docker manifest create "${flags[@]}" "$candidate" "${parts[@]}"
+          docker manifest push "${flags[@]}" "$candidate"
+          for arch in amd64 arm64; do
+            docker pull --platform "linux/$arch" "$candidate"
+            test "$(docker image inspect --format '{{.Id}}' "$candidate")" = "$(cat "$arch.id")"
+          done
+          export CMDOP_REPORT_IMAGE="$candidate"
+          cd reference
+          docker compose pull report-app
+          docker compose run --rm --no-deps --pull never -T --entrypoint python report-app /opt/report/read_report.py |
+            jq -se '. == [{"job":"demo-build","tests_passed":3,"tests_failed":0}]'
+          cd ..
+          if [[ "$PUBLISH" == true ]]; then
+            stable=$(curl -fsSL https://install.cmdop.ai/releases/stable.json | jq -er '.signed.version')
+            test "$stable" = "$(cat images/image-amd64/version)"
+            docker manifest create "$repo:latest" "${parts[@]}"
+            docker manifest push "$repo:latest"
+          fi
