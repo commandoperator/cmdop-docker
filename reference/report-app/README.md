@@ -67,7 +67,14 @@ starts again when the Docker engine restarts, unless you explicitly stopped it.
 
 Supply the application with an agent token that can read the report on the registered
 container machine. Set `CMDOP_URL`, `CMDOP_TOKEN` and `CMDOP_MACHINE` in the caller's
-environment. Set the machine ID explicitly even when only one machine is online.
+environment. After connection, `./connect` prints the SDK machine ID. To select
+this container directly from the same Compose project, set it in your shell:
+
+```sh
+CMDOP_MACHINE=$(docker compose exec -T report-app cmdop key) && export CMDOP_MACHINE
+```
+
+The ID is the container machine's public key. The agent token grants access.
 From the same Compose project, run:
 
 ```sh
