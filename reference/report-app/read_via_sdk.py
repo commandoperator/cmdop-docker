@@ -26,7 +26,7 @@ def main():
     except json.JSONDecodeError:
         raise SystemExit("The selected machine returned invalid report JSON.") from None
     expected = {"job": "demo-build", "tests_passed": 3, "tests_failed": 0}
-    if report != expected:
+    if report != expected or any(type(report[key]) is not int for key in ("tests_passed", "tests_failed")):
         raise SystemExit("Unexpected build report from the selected machine")
     print(json.dumps(report))
 
