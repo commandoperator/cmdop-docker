@@ -20,8 +20,16 @@ def wait_online(timeout=45):
                 link = json.loads(result.stdout)["link"]
                 state = link["state"]
                 if state == "up":
-                    print("CMDOP is online in your contour.")
+                    contour = link.get("contour") or {}
+                    address = contour.get("base_url")
+                    print(f"CMDOP is online at {address}." if address else "CMDOP is online in your contour.")
                     return
+                if state == "failed":
+                    reason = link.get("reason") or "The client could not establish a connection."
+                    raise SystemExit(
+                        f"Connection failed: {reason}\n"
+                        "Check the configured server address and TLS settings, then restart report-app."
+                    )
                 if state == "refused":
                     if link.get("reason") == "over_plan":
                         raise SystemExit("This contour has reached its machine limit. Check the contour plan.")
