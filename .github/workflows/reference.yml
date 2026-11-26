@@ -54,3 +54,5 @@ jobs:
               "$bin" --version
             done
           '
+      - name: Recover the original image and preserve its home volume
+        run: sh tests/recover-image.sh
