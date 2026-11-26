@@ -1,3 +1,36 @@
+# CMDOP for Docker
+
+Ask your agent for the latest build report from a container. The reference
+application includes the CMDOP machine client, a Python SDK caller and a local
+MCP server with a sample build report.
+
+## Connect the reference application
+
+From this checkout, with Docker Compose running and an existing CMDOP account:
+
+```sh
+cd reference
+./connect --name my-product-demo
+```
+
+The command builds the latest stable CMDOP client into the image, guides you
+through account sign-in and waits for the machine to come online. Compose keeps
+the machine identity in a named volume. Once online, try this prompt in an agent
+connected to the same contour with command execution permission:
+
+> On my-product-demo, run `/usr/local/bin/python /opt/report/read_report.py`.
+> Which build ran, and how many tests passed?
+
+The packaged sample returns `demo-build`, three tests passed and zero failed.
+The local report call has been verified in Docker. Hosted sign-in and the
+external agent call are pending end-to-end verification.
+
+For an offline check, upgrades and the SDK caller, see the
+[reference application guide](reference/report-app/README.md).
+
+<details>
+<summary>Legacy Docker Hub image, sidecar and demo instructions</summary>
+
 <div align="center">
 
 # Cmdop for Docker
@@ -134,3 +167,5 @@ Published documentation lives at
 **[docs.cmdop.com/docs/deployment/docker](https://docs.cmdop.com/docs/deployment/docker)**.
 Operator-level detail for the demo stand is in
 [`docs/`](docs).
+
+</details>

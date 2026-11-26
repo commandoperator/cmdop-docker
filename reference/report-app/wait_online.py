@@ -1,0 +1,32 @@
+"""Wait for the machine's authenticated connection after enrollment."""
+import json
+import subprocess
+import time
+
+
+def wait_online(timeout=45):
+    deadline = time.monotonic() + timeout
+    state = "starting"
+    while (remaining := deadline - time.monotonic()) > 0:
+        try:
+            result = subprocess.run(
+                ["cmdop", "control", "status.get"],
+                stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                timeout=min(3, remaining),
+            )
+            if result.returncode:
+                state = "control socket unavailable"
+            else:
+                link = json.loads(result.stdout)["link"]
+                state = link["state"]
+                if state == "up":
+                    print("CMDOP is online in your contour.")
+                    return
+        except (ValueError, KeyError, TypeError, subprocess.TimeoutExpired):
+            state = "status unavailable"
+        time.sleep(min(1, max(0, deadline - time.monotonic())))
+    raise SystemExit(f"Connection pending ({state}). Check docker compose logs report-app.")
+
+
+if __name__ == "__main__":
+    wait_online()
