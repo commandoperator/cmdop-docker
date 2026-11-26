@@ -19,7 +19,7 @@ services:
       args:
         MACHINE_IMAGE: machine_base
         FIXTURE_IMAGE: report_fixture
-    image: cmdop-report-app:local
+    image: ${CMDOP_REPORT_IMAGE:-cmdop-report-app:local}
     restart: unless-stopped
     environment:
       CMDOP_RESTARTED_BY_CONTAINER: "1"

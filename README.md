@@ -41,6 +41,17 @@ it to `latest` after verifying both architectures and the stable client version.
 On first publication, confirm the package visibility and test an anonymous pull
 before sharing the image with users.
 
+Once the package is available, the same connection helper can pull the published
+image. From `reference/`, run:
+
+```sh
+CMDOP_REPORT_IMAGE=ghcr.io/commandoperator/cmdop-report-app:latest ./connect --name my-product-demo
+```
+
+For repeatable deployments, supply the published manifest digest in the form
+`ghcr.io/commandoperator/cmdop-report-app@sha256:…`. Use the same image setting
+and Compose project on subsequent starts to reuse the machine volume.
+
 <details>
 <summary>Legacy Docker Hub image, sidecar and demo instructions</summary>
 

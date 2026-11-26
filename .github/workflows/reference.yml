@@ -90,6 +90,7 @@ jobs:
         image: registry:2
         ports: ['5000:5000']
     steps:
+      - uses: actions/checkout@v7.0.1
       - uses: actions/download-artifact@v8.0.2
         with:
           pattern: image-*
@@ -127,6 +128,12 @@ jobs:
             docker pull --platform "linux/$arch" "$candidate"
             test "$(docker image inspect --format '{{.Id}}' "$candidate")" = "$(cat "$arch.id")"
           done
+          export CMDOP_REPORT_IMAGE="$candidate"
+          cd reference
+          docker compose pull report-app
+          docker compose run --rm --no-deps --pull never -T --entrypoint python report-app /opt/report/read_report.py |
+            jq -se '. == [{"job":"demo-build","tests_passed":3,"tests_failed":0}]'
+          cd ..
           if [[ "$PUBLISH" == true ]]; then
             stable=$(curl -fsSL https://install.cmdop.ai/releases/stable.json | jq -er '.signed.version')
             test "$stable" = "$(cat images/image-amd64/version)"
