@@ -58,3 +58,5 @@ jobs:
         run: sh tests/recover-image.sh
       - name: Verify the packaged SDK reader against a local contour fixture
         run: docker run --rm -i --network none --cap-drop ALL --entrypoint python cmdop-report-app:local - < tests/read-via-sdk.py
+      - name: Reuse a saved machine configuration without interactive account sign-in
+        run: docker run --rm -i --network none --cap-drop ALL --entrypoint python cmdop-report-app:local - < tests/reconnect.py

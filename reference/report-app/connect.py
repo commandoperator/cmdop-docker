@@ -31,7 +31,16 @@ def main():
     # interactive terms prompt, which the configuration step below handles.
     saved = subprocess.run(["cmdop", "config", "show"], stdin=subprocess.DEVNULL,
                            capture_output=True, text=True)
-    config = json.loads(saved.stdout) if saved.returncode == 0 else {}
+    try:
+        config = json.loads(saved.stdout) if saved.stdout.strip() else {}
+    except ValueError:
+        raise SystemExit("Could not read the saved machine configuration. Run cmdop config show.") from None
+    if not isinstance(config, dict):
+        raise SystemExit("Unexpected machine configuration. Run cmdop config show.")
+    if saved.returncode and config.get("_invalid"):
+        raise SystemExit("The saved machine configuration is invalid. Run cmdop config show to see the field to fix.")
+    if saved.returncode and (saved.stdout.strip() or "terms of use accepted" not in saved.stderr):
+        raise SystemExit("Could not read the saved machine configuration. Run cmdop config show.")
     if config.get("server") and not args.sign_in:
         if args.name:
             subprocess.run(["cmdop", "config", "set", "name", args.name], check=True)
