@@ -22,6 +22,13 @@ def wait_online(timeout=45):
                 if state == "up":
                     print("CMDOP is online in your contour.")
                     return
+                if state == "refused":
+                    if link.get("reason") == "over_plan":
+                        raise SystemExit("This contour has reached its machine limit. Check the contour plan.")
+                    raise SystemExit(
+                        "The server refused this machine. To enroll it again, run "
+                        "docker compose stop report-app && ./connect --sign-in from reference/."
+                    )
         except (ValueError, KeyError, TypeError, subprocess.TimeoutExpired):
             state = "status unavailable"
         time.sleep(min(1, max(0, deadline - time.monotonic())))

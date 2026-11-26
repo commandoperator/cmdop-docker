@@ -23,12 +23,25 @@ def signin(*args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--name", default="my-product-demo")
+    parser.add_argument("--name")
+    parser.add_argument("--sign-in", action="store_true",
+                        help="Authenticate again using this volume’s existing machine identity.")
     args = parser.parse_args()
+    # Probe without consuming terminal input. On first use CMDOP requires its
+    # interactive terms prompt, which the configuration step below handles.
+    saved = subprocess.run(["cmdop", "config", "show"], stdin=subprocess.DEVNULL,
+                           capture_output=True, text=True)
+    config = json.loads(saved.stdout) if saved.returncode == 0 else {}
+    if config.get("server") and not args.sign_in:
+        if args.name:
+            subprocess.run(["cmdop", "config", "set", "name", args.name], check=True)
+        print("Using the saved machine link. Checking the connection after startup.")
+        return
     if not sys.stdin.isatty():
-        raise SystemExit("First sign-in requires an interactive terminal.")
+        raise SystemExit("Account sign-in requires an interactive terminal.")
     # Keep CMDOP's own first-use agreement prompt attached to the terminal.
-    if subprocess.run(["cmdop", "config", "set", "name", args.name]).returncode:
+    name = args.name or config.get("name") or "my-product-demo"
+    if subprocess.run(["cmdop", "config", "set", "name", name]).returncode:
         raise SystemExit("CMDOP could not prepare the machine configuration.")
     email = input("Email for your existing CMDOP account: ").strip()
     reply = signin("email", email)

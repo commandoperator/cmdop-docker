@@ -42,11 +42,21 @@ It builds the image, lets you review CMDOP's terms, asks for your existing accou
 email and code, and prompts for an authenticator code if required. CMDOP selects
 the account's contour and saves the machine identity in the Compose home volume.
 Once registration succeeds, the command starts the foreground client in a detached
-container. The command prints the contour URL. If the volume already holds an
+container. On first sign-in the command prints the contour URL. Run `./connect` again to rebuild and reconnect using the saved link without entering an email. Omitting `--name` preserves the registered name. If the volume already holds an
 admitted identity, CMDOP reuses its original contour. Use a separate Compose
 project and volume for an instance belonging to another account. The command waits up to 45 seconds for CMDOP to report its connection online.
 If the wait expires, the client keeps running. Inspect `docker compose logs report-app`. On subsequent starts use
 `docker compose up -d report-app` from the same project.
+
+If the server refuses a previously enrolled machine and you want to grant it access
+again, run this from the same Compose project. The existing home volume retains its key and name.
+
+```sh
+docker compose stop report-app && ./connect --sign-in
+```
+
+If CMDOP reports that the contour has reached its machine limit, check the plan
+in the dashboard. Repeating account sign-in cannot increase that limit.
 
 For the external SDK example, set the target interpreter to `/usr/local/bin/python`
 and its helper to `/opt/report/read_report.py`. Use `docker compose stop report-app`
