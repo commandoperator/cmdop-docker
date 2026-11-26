@@ -36,3 +36,15 @@ jobs:
           docker run --rm --network none cmdop-report-app:local --version
           docker run --rm --network none --cap-drop ALL --entrypoint python cmdop-report-app:local /opt/report/read_report.py |
             jq -se '. == [{"job":"demo-build","tests_passed":3,"tests_failed":0}]'
+      - name: Verify the non-root client can replace its binary and keep a backup
+        run: |
+          docker run --rm --network none --cap-drop ALL --entrypoint sh cmdop-report-app:local -ec '
+            test "$(id -u)" = 10001
+            bin=$(readlink -f "$(command -v cmdop)")
+            for pass in 1 2; do
+              cp "$bin" "$bin.new"
+              cp "$bin" "$bin.prev"
+              mv "$bin.new" "$bin"
+              "$bin" --version
+            done
+          '

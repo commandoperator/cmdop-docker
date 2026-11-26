@@ -50,3 +50,20 @@ factor, use its attempt value with
 `machine signin second-factor --attempt "$ATTEMPT" --code "$AUTHENTICATOR_CODE"`.
 After admission, `machine run --no-sessions` starts the foreground client using
 the saved configuration. Verify the named machine appears online before running SDK examples.
+
+### Updates in a running reference container
+
+The reference image keeps the executable in `/opt/cmdop/bin`, which belongs
+to UID 10001. The command in `/usr/local/bin` points there. Compose starts
+the client as PID 1 with `restart: unless-stopped` and sets
+`CMDOP_RESTARTED_BY_CONTAINER=1`. The opt-in needs a client release that
+recognizes it. CMDOP 0.1.16 recognizes launchd and systemd only.
+
+Use the rebuild procedure for released 0.1.16 containers. For a supporting
+release, verify the update in a disposable enrolled instance when a newer
+signed release is available. Record the running version, machine ID and Docker
+restart count. Allow the scheduled check to run, or use `cmdop update --now`
+to wake the same updater. Confirm an increased restart count on the same
+container, the new running version in machine status, and the same machine ID
+online. Then read the report using its existing agent grant. Recreate from a
+freshly rebuilt image to carry that version into a replacement container.

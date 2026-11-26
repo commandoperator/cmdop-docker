@@ -12,7 +12,9 @@ ADD https://install.cmdop.ai/ /tmp/install-cmdop.sh
 RUN CMDOP_INSTALL_DIR=/usr/local/bin sh /tmp/install-cmdop.sh
 
 FROM base
-COPY --from=machine --chmod=0555 /usr/local/bin/cmdop /usr/local/bin/cmdop
+RUN install -d -o 10001 -g 10001 /opt/cmdop/bin
+COPY --from=machine --chmod=0755 /usr/local/bin/cmdop /opt/cmdop/bin/cmdop
+RUN ln -s /opt/cmdop/bin/cmdop /usr/local/bin/cmdop
 USER cmdop
 ENV HOME=/home/cmdop
 WORKDIR /home/cmdop
