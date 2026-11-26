@@ -23,6 +23,7 @@ jobs:
     defaults:
       run:
         working-directory: reference
+        shell: bash
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Build the report application
@@ -34,4 +35,4 @@ jobs:
           test "$(docker image inspect --format '{{.Architecture}}' cmdop-report-app:local)" = "$EXPECTED_ARCH"
           docker run --rm --network none cmdop-report-app:local --version
           docker run --rm --network none --cap-drop ALL --entrypoint python cmdop-report-app:local /opt/report/read_report.py |
-            jq -e '. == {"job":"demo-build","tests_passed":3,"tests_failed":0}'
+            jq -se '. == [{"job":"demo-build","tests_passed":3,"tests_failed":0}]'
