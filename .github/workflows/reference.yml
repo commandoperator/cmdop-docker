@@ -36,6 +36,12 @@ jobs:
           docker run --rm --network none cmdop-report-app:local --version
           docker run --rm --network none --cap-drop ALL --entrypoint python cmdop-report-app:local /opt/report/read_report.py |
             jq -se '. == [{"job":"demo-build","tests_passed":3,"tests_failed":0}]'
+      - name: Compare the installed binary with the stable Linux release
+        run: |
+          curl --fail --silent --show-error --location https://install.cmdop.ai/releases/stable.json -o "$RUNNER_TEMP/cmdop-stable.json"
+          expected=$(jq -er --arg id "machine-linux-$(uname -m)" '.signed.artifacts[] | select(.id == $id) | .sha256' "$RUNNER_TEMP/cmdop-stable.json")
+          actual=$(docker run --rm --network none --entrypoint sha256sum cmdop-report-app:local /usr/local/bin/cmdop)
+          test "${actual%% *}" = "$expected"
       - name: Verify the non-root client can replace its binary and keep a backup
         run: |
           docker run --rm --network none --cap-drop ALL --entrypoint sh cmdop-report-app:local -ec '
