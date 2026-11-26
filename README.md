@@ -22,11 +22,24 @@ connected to the same contour with command execution permission:
 > Which build ran, and how many tests passed?
 
 The packaged sample returns `demo-build`, three tests passed and zero failed.
-The local report call has been verified in Docker. Hosted sign-in and the
-external agent call are pending end-to-end verification.
+In a hosted Linux ARM64 run, the enrolled container returned this report through
+the external MCP connector and both public SDK examples.
 
 For an offline check, upgrades and the SDK caller, see the
 [reference application guide](reference/report-app/README.md).
+
+## Publish the report application
+
+The Docker reference workflow builds and tests on native Linux amd64 and arm64.
+Its registry job pulls both platform images and checks their image IDs against
+the tested builds. Ordinary CI uses a temporary registry on the runner.
+
+To publish, run **Docker reference** from **main** in GitHub Actions and select
+**Publish the tested report application to GHCR**. The workflow uploads a
+run-specific candidate to `ghcr.io/commandoperator/cmdop-report-app` and promotes
+it to `latest` after verifying both architectures and the stable client version.
+On first publication, confirm the package visibility and test an anonymous pull
+before sharing the image with users.
 
 <details>
 <summary>Legacy Docker Hub image, sidecar and demo instructions</summary>
