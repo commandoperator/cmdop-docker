@@ -30,3 +30,13 @@ examples/original/agents/*
 !examples/original/agents/.gitkeep
 
 examples/simple/node_modules/
+
+# Windows reference: VM disks, media, and local exchange must never enter Git.
+/reference/windows/.env*
+/reference/windows/storage/
+/reference/windows/shared/
+/reference/windows/*.iso
+/reference/windows/*.img
+/reference/windows/*.qcow2
+/reference/windows/*.vhd*
+/reference/windows/__pycache__/

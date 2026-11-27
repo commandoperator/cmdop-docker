@@ -4,6 +4,12 @@ Ask your agent for the latest build report from a container. The reference
 application includes the CMDOP machine client, a Python SDK caller and a local
 MCP server with a sample build report.
 
+## Choose a reference environment
+
+See [Linux and Windows references](reference/README.md). Linux is the existing
+report container. The Windows guest reference is a preview for native
+installer and update acceptance, not an offered Windows release.
+
 ## Connect the reference application
 
 From this checkout, with Docker Compose running and an existing CMDOP account:

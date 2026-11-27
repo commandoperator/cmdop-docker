@@ -1,0 +1,41 @@
+# A real Windows guest in a Linux container, not a Windows container image.
+name: cmdop-windows-reference
+services:
+  windows:
+    image: ghcr.io/dockur/windows:6.06@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc
+    platform: linux/amd64
+    environment:
+      VERSION: "11"
+      MANUAL: "Y"
+      RAM_SIZE: "8G"
+      CPU_CORES: "4"
+      DISK_SIZE: "80G"
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    cpus: "4.0"
+    mem_limit: 10g
+    memswap_limit: 10g
+    restart: "no"
+    stop_grace_period: 2m
+    ports:
+      - "127.0.0.1:${CMDOP_WINDOWS_WEB_PORT:-18006}:8006"
+    volumes:
+      - type: bind
+        source: ${CMDOP_WINDOWS_STORAGE:?Choose an external dedicated Windows lab directory}
+        target: /storage
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${CMDOP_WINDOWS_ISO:?Provide an authorized Windows x64 ISO}
+        target: /custom.iso
+        read_only: true
+        bind:
+          create_host_path: false
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
